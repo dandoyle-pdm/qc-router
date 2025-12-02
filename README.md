@@ -37,38 +37,39 @@ QC Router provides three complete quality cycles, each with Creator, Critic, and
 
 #### Code Quality Cycle (R1)
 
-| Agent | Role | Description |
-|-------|------|-------------|
+| Agent              | Role    | Description                                                               |
+| ------------------ | ------- | ------------------------------------------------------------------------- |
 | **code-developer** | Creator | Writes initial code implementations and iterates based on review feedback |
-| **code-reviewer** | Critic | Performs adversarial review with CRITICAL/HIGH/MEDIUM severity levels |
-| **code-tester** | Judge | Runs tests, evaluates audits, and makes final routing decisions |
+| **code-reviewer**  | Critic  | Performs adversarial review with CRITICAL/HIGH/MEDIUM severity levels     |
+| **code-tester**    | Judge   | Runs tests, evaluates audits, and makes final routing decisions           |
 
 #### Documentation Quality Cycle (R2)
 
-| Agent | Role | Description |
-|-------|------|-------------|
-| **tech-writer** | Creator | Creates clear documentation and iterates based on editorial feedback |
-| **tech-editor** | Critic | Performs editorial review with prioritized quality findings |
-| **tech-publisher** | Judge | Validates readability and coherency, approves for publication |
+| Agent              | Role    | Description                                                          |
+| ------------------ | ------- | -------------------------------------------------------------------- |
+| **tech-writer**    | Creator | Creates clear documentation and iterates based on editorial feedback |
+| **tech-editor**    | Critic  | Performs editorial review with prioritized quality findings          |
+| **tech-publisher** | Judge   | Validates readability and coherency, approves for publication        |
 
 #### Prompt Engineering Quality Cycle
 
-| Agent | Role | Description |
-|-------|------|-------------|
-| **prompt-engineer** | Creator | Designs prompts using pillar-based methodology |
-| **prompt-reviewer** | Critic | Reviews prompts for clarity, specificity, and edge case coverage |
-| **prompt-tester** | Judge | Tests prompt effectiveness and makes approval decisions |
+| Agent               | Role    | Description                                                      |
+| ------------------- | ------- | ---------------------------------------------------------------- |
+| **prompt-engineer** | Creator | Designs prompts using pillar-based methodology                   |
+| **prompt-reviewer** | Critic  | Reviews prompts for clarity, specificity, and edge case coverage |
+| **prompt-tester**   | Judge   | Tests prompt effectiveness and makes approval decisions          |
 
 ### Hooks
 
 The plugin registers two hooks that integrate with Claude Code sessions:
 
-| Hook | Trigger | Purpose |
-|------|---------|---------|
-| **set-quality-cycle-context.sh** | SessionStart | Detects working context and sets quality cycle environment variables |
-| **enforce-quality-cycle.sh** | PreToolUse (Bash, Edit, Write) | Enforces quality cycle compliance before file modifications |
+| Hook                             | Trigger                        | Purpose                                                              |
+| -------------------------------- | ------------------------------ | -------------------------------------------------------------------- |
+| **set-quality-cycle-context.sh** | SessionStart                   | Detects working context and sets quality cycle environment variables |
+| **enforce-quality-cycle.sh**     | PreToolUse (Bash, Edit, Write) | Enforces quality cycle compliance before file modifications          |
 
 Both hooks are security-hardened with:
+
 - Path validation to prevent traversal attacks
 - Command injection prevention
 - Atomic file operations
@@ -76,21 +77,21 @@ Both hooks are security-hardened with:
 
 ### Skills
 
-| Skill | Description |
-|-------|-------------|
+| Skill                        | Description                                                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **agentic-quality-workflow** | Comprehensive procedures for git worktree management and quality cycle workflows. Includes 12 reference documents covering ticket systems, code review checklists, troubleshooting, and emergency recovery. |
 
 ## Quality Recipes
 
 Select the appropriate recipe based on work type:
 
-| Recipe | Work Type | Cycle |
-|--------|-----------|-------|
-| **R1** | Production code | code-developer -> code-reviewer -> code-tester |
-| **R2** | Documentation (100+ lines) | tech-writer -> tech-editor -> tech-publisher |
-| **R3** | Handoff prompts | tech-editor (quick check) |
-| **R4** | Read-only queries | None (fast path) |
-| **R5** | Config/minor changes | Single reviewer |
+| Recipe | Work Type                  | Cycle                                          |
+| ------ | -------------------------- | ---------------------------------------------- |
+| **R1** | Production code            | code-developer -> code-reviewer -> code-tester |
+| **R2** | Documentation (100+ lines) | tech-writer -> tech-editor -> tech-publisher   |
+| **R3** | Handoff prompts            | tech-editor (quick check)                      |
+| **R4** | Read-only queries          | None (fast path)                               |
+| **R5** | Config/minor changes       | Single reviewer                                |
 
 ## Workflow Pattern
 
@@ -116,6 +117,15 @@ The plugin uses environment-based configuration through session state:
 
 No additional configuration is required after installation.
 
-## License
+## Contributing
 
-MIT
+See [DEVELOPER.md](DEVELOPER.md) for technical documentation on:
+
+- Adding/modifying agents, hooks, and skills
+- Hook development patterns and security hardening
+- Testing procedures (hooks require restart)
+- Contribution workflow and ticket system
+
+For Claude Code sessions working on this plugin, see [CLAUDE.md](CLAUDE.md) for project context and development rules.
+
+## License
