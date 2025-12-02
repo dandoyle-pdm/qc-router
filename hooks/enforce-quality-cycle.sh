@@ -121,13 +121,6 @@ is_quality_cycle_active() {
         fi
     fi
 
-    # Check working directory patterns for worktree context
-    local cwd="${CWD:-$(pwd)}"
-    if [[ "${cwd}" =~ /workspace/worktrees/ ]]; then
-        debug_log "Worktree context detected: ${cwd}"
-        return 0
-    fi
-
     return 1
 }
 
@@ -157,6 +150,11 @@ is_protected_path() {
 
     # Hook scripts specifically
     if [[ "${path}" =~ \.claude/hooks/ ]]; then
+        return 0
+    fi
+
+    # Production code files
+    if [[ "${path}" =~ \.(go|ts|tsx|js|jsx|rs|java|c|cpp|h|hpp)$ ]]; then
         return 0
     fi
 
