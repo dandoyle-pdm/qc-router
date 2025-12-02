@@ -1,0 +1,16 @@
+{
+  "name": "qc-router",
+  "version": "1.0.0",
+  "description": "Quality Cycle Router - Creator/Critic/Judge quality cycles for code and documentation workflows",
+  "author": {
+    "name": "Dan Doyle",
+    "url": "https://github.com/dandoyle-pdm"
+  },
+  "homepage": "https://github.com/dandoyle-pdm/qc-router",
+  "repository": "https://github.com/dandoyle-pdm/qc-router",
+  "license": "MIT",
+  "keywords": ["quality-cycle", "agents", "code-review", "documentation"],
+  "agents": "./agents",
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json"
+}
