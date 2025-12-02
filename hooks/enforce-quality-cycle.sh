@@ -90,7 +90,7 @@ validate_env_file() {
     return 0
 }
 
-# Check if current branch is a protected branch (main, master, develop, release/*)
+# Check if current branch is a protected production branch
 is_protected_branch() {
     local cwd="${CWD:-$(pwd)}"
 
@@ -102,9 +102,9 @@ is_protected_branch() {
     local branch
     branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
-    # Protected branches
+    # Production branches - require ticket + worktree workflow
     case "$branch" in
-        main|master|develop|release/*)
+        main|production)
             return 0  # Protected
             ;;
         *)
