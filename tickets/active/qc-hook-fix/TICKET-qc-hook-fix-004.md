@@ -168,6 +168,26 @@ Part 3 (SessionStart integration) was marked as optional in the requirements. Di
   - `agents/prompt-engineer/AGENT.md` (added validation section)
 - Commits:
   - `1702291` - feat: add ticket validator for pre-work validation
+  - `d9c105b` - fix: address code-reviewer findings in validate-ticket.sh
+
+## Iteration 2 Notes (Addressing code-reviewer findings)
+
+**H1 - Path Matching Vulnerability (Fixed)**:
+- Changed path matching from `"$(pwd)" != "$worktree_path"*` to `"$cwd" != "$worktree_path" && "$cwd" != "$worktree_path/"*`
+- Now requires exact match OR subdirectory with explicit trailing slash
+- Tested: `/tmp/test-worktree-other` correctly rejected when worktree_path is `/tmp/test-worktree`
+
+**H2 - Multi-line YAML Value Capture (Fixed)**:
+- Added `| head -1` to all three sed YAML parsing commands
+- Only captures first occurrence of each key
+- Tested: Ticket with duplicate patterns in body content validates correctly
+
+**Testing performed**:
+1. Exact match (cwd == worktree_path) - PASS
+2. Subdirectory (cwd == worktree_path/subdir) - PASS
+3. Prefix collision (cwd == worktree_path-suffix) - FAIL (correct behavior)
+4. Multi-line YAML (duplicate keys in body) - PASS (ignores duplicates)
+5. Shellcheck - PASS (no warnings)
 
 **Status Update**: 2025-12-02 - Changed status to `critic_review`
 
@@ -224,6 +244,13 @@ The M1 issue is acceptable debt - it can be addressed in a follow-up if needed.
 **Status Update**: [Date/time] - Changed status to `approved` or created rework ticket
 
 # Changelog
+
+## [2025-12-02] - Creator Iteration 2 (code-developer)
+- Fixed H1: Path matching vulnerability with trailing slash requirement
+- Fixed H2: Multi-line YAML capture with head -1 on all sed commands
+- Tested all 5 scenarios, shellcheck passes
+- Commit: d9c105b
+- Status remains critic_review for re-audit
 
 ## [2025-12-02] - Critic (code-reviewer)
 - Audited validate-ticket.sh and agent AGENT.md updates
