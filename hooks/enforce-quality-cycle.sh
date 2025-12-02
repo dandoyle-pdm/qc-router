@@ -90,6 +90,35 @@ validate_env_file() {
     return 0
 }
 
+# Check if current branch is a protected branch (main, master, develop, release/*)
+is_protected_branch() {
+    local cwd="${CWD:-$(pwd)}"
+
+    # Check if we're in a git repo
+    if ! git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+        return 1  # Not a git repo, not protected
+    fi
+
+    local branch
+    branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+    # Protected branches
+    case "$branch" in
+        main|master|develop|release/*)
+            return 0  # Protected
+            ;;
+        *)
+            return 1  # Not protected
+            ;;
+    esac
+}
+
+# Get current branch name for error messages
+get_current_branch() {
+    local cwd="${CWD:-$(pwd)}"
+    git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"
+}
+
 # Check if we're in a quality cycle context
 is_quality_cycle_active() {
     # SECURITY FIX: Log override usage for audit trail
@@ -280,6 +309,51 @@ Example workflow:
 EOFMSG
 }
 
+# Generate error message for protected branch violations
+generate_branch_error_message() {
+    local tool="$1"
+    local branch="$2"
+    local target="${3:-}"
+
+    cat <<EOFMSG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ PROTECTED BRANCH - Operation Blocked
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You are on protected branch: ${branch}
+Tool: ${tool}
+Target: ${target}
+
+Direct modifications to protected branches are not allowed.
+This prevents accidental commits that bypass:
+  - Pull request review process
+  - CI/CD validation checks
+  - Branch protection rules
+
+TO PROCEED CORRECTLY:
+1. Create a git worktree for your feature:
+   git worktree add ../feature-name -b feature/your-feature
+
+2. Switch to the worktree directory:
+   cd ../feature-name
+
+3. Make your changes there, then create a PR
+
+WORKTREE COMMANDS:
+  List worktrees:   git worktree list
+  Create worktree:  git worktree add <path> -b <branch>
+  Remove worktree:  git worktree remove <path>
+
+EMERGENCY OVERRIDE (use sparingly - will be audited):
+Export CLAUDE_MAIN_OVERRIDE=true before the operation
+
+Note: This is separate from CLAUDE_QC_OVERRIDE (quality cycle bypass).
+Branch protection is about WHERE you write, not quality gates.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOFMSG
+}
+
 # Main execution
 main() {
     # Clean up stale sessions periodically
@@ -332,6 +406,37 @@ main() {
             ;;
         *)
             exit 0
+            ;;
+    esac
+
+    # HARD GATE: Protected branch check for destructive tools
+    # This runs BEFORE quality cycle checks - branch protection is non-negotiable
+    case "${tool_name}" in
+        Edit|Write)
+            if is_protected_branch; then
+                local current_branch
+                current_branch=$(get_current_branch)
+
+                # Check for explicit main branch override
+                if [[ "${CLAUDE_MAIN_OVERRIDE:-false}" == "true" ]]; then
+                    # Log override usage for audit trail
+                    local override_msg="[$(date -Iseconds)] MAIN_OVERRIDE used - session: ${SESSION_ID:-unknown}, tool: ${tool_name}, branch: ${current_branch}, cwd: ${CWD:-unknown}"
+                    debug_log "AUDIT: ${override_msg}"
+                    # Allow operation to continue (will still hit QC checks)
+                else
+                    # Extract file_path for error message
+                    local file_path_preview
+                    if command -v jq >/dev/null 2>&1; then
+                        file_path_preview=$(printf '%s\n' "${json_input}" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || file_path_preview=""
+                    else
+                        file_path_preview=$(printf '%s\n' "${json_input}" | grep -oP '"file_path"\s*:\s*"\K[^"]+' || echo "")
+                    fi
+
+                    debug_log "Protected branch write blocked: branch=${current_branch}, tool=${tool_name}, target=${file_path_preview}"
+                    generate_branch_error_message "${tool_name}" "${current_branch}" "${file_path_preview}" >&2
+                    exit 2
+                fi
+            fi
             ;;
     esac
 
