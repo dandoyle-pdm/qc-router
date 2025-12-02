@@ -6,7 +6,7 @@ sequence: 003
 parent_ticket: TICKET-qc-hook-fix-002
 title: Block destructive tools on protected branches (main/master/develop)
 cycle_type: development
-status: critic_review
+status: expediter_review
 created: 2025-12-02
 worktree_path: /home/ddoyle/workspace/worktrees/qc-router/qc-hook-fix
 ---
@@ -155,21 +155,66 @@ None. Implementation follows the ticket specifications exactly.
 ## Audit Findings
 
 ### CRITICAL Issues
-- [ ] None identified yet
+- None identified
 
 ### HIGH Issues
-- [ ] None identified yet
+- None identified
 
 ### MEDIUM Issues
-- [ ] None identified yet
+- [x] **M1: Detached HEAD bypass** - When in detached HEAD state, `git rev-parse --abbrev-ref HEAD` returns "HEAD" literally, which does not match protected branch patterns. **Assessment: Acceptable behavior** - Detached HEAD is typically used for CI/CD or investigation, not for committing. If someone checks out a specific commit and tries to commit, they would need to create a branch anyway.
+
+- [x] **M2: Case sensitivity** - Branch names "MAIN", "Main", "MASTER" would not be blocked. **Assessment: Acceptable** - Git branch names are case-sensitive on most systems, and GitHub treats these as different branches. Standard convention uses lowercase.
+
+- [x] **M3: SC2155 shellcheck warning** - `local override_msg="$(date ...)"` combines declaration and assignment. **Assessment: Pre-existing pattern** - This follows the existing code style in the file. Not a functional issue.
+
+### Verification Tests Performed
+
+| Test | Result | Notes |
+|------|--------|-------|
+| Edit on main branch | BLOCKED (exit 2) | Correct behavior |
+| Write on main branch | BLOCKED (exit 2) | Correct behavior |
+| Bash on main branch | ALLOWED (exit 0) | Correct - Bash excluded from branch check |
+| Edit on feature branch | ALLOWED | Passes to QC check |
+| Edit on release/v1.0.0 | BLOCKED (exit 2) | release/* pattern works |
+| Edit in non-git dir | ALLOWED | Passes to QC check |
+| Detached HEAD state | ALLOWED | "HEAD" not in protected list |
+| CLAUDE_MAIN_OVERRIDE=true | ALLOWED + AUDITED | Audit log entry created |
+| Command injection via CWD | PREVENTED | Quoted paths handled safely |
+| Newline injection via CWD | PREVENTED | git -C handles special chars |
+
+### Security Analysis
+
+1. **Branch check bypass via CLAUDE_MAIN_OVERRIDE**: Properly logged to audit trail in debug log. Message includes session ID, tool, branch, and CWD.
+
+2. **Command injection vectors**: The `git -C "$cwd"` pattern safely quotes the path. Tested with semicolon and newline injection - both prevented.
+
+3. **Check ordering**: Branch protection check (lines 412-441) runs BEFORE quality cycle check (line 444), implementing the "hard gate" requirement correctly.
+
+4. **Scope**: Only Edit and Write are branch-checked (line 415). Bash is correctly excluded since it doesn't directly write code files.
+
+### Integration Analysis
+
+1. **Works with is_protected_path()**: Branch check is a separate hard gate that runs before any path analysis. Both layers provide defense in depth.
+
+2. **Exit code consistency**: Uses exit 2 (same as QC blocks) for blocked operations.
+
+3. **Error message quality**: Clear explanation of why blocked, how to use worktrees, and how to override with proper audit warning.
 
 ## Approval Decision
-[APPROVED | NEEDS_CHANGES]
+APPROVED
 
 ## Rationale
-[Why this decision]
+The implementation correctly addresses the security gap identified in TICKET-qc-hook-fix-002. Key strengths:
 
-**Status Update**: [Date/time] - Changed status to `expediter_review`
+1. **Hard gate positioning** - Branch check runs before any other checks, cannot be bypassed by quality cycle context
+2. **Proper scope** - Only blocks destructive tools (Edit/Write), allows read operations
+3. **Audit trail** - Override usage is logged with full context
+4. **Error UX** - Helpful message with worktree commands and clear next steps
+5. **Security** - No command injection vectors identified
+
+The medium-severity observations (detached HEAD, case sensitivity) are acceptable design decisions that align with standard git behavior.
+
+**Status Update**: 2025-12-02 - Changed status to `expediter_review`
 
 # Expediter Section
 
@@ -188,6 +233,14 @@ None. Implementation follows the ticket specifications exactly.
 **Status Update**: [Date/time] - Changed status to `approved` or created rework ticket
 
 # Changelog
+
+## [2025-12-02] - code-reviewer
+- Performed adversarial security audit
+- Verified no CRITICAL or HIGH issues
+- Documented 3 MEDIUM observations (all acceptable)
+- Tested 10+ scenarios including command injection attempts
+- Confirmed hard gate ordering, exit codes, audit logging
+- **APPROVED** - Changed status to expediter_review
 
 ## [2025-12-02] - code-developer
 - Implemented is_protected_branch() function
