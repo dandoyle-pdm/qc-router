@@ -75,6 +75,14 @@ Creator -> Critic(s) -> Judge -> [ticket routing]
 - Verify no other documentation worktrees are active (documentation must be serial to maintain coherency)
 - Check clean state: `git status` should show no uncommitted changes
 
+### Pre-Implementation Validation
+
+Before any file modifications:
+1. Locate the ticket file for this work
+2. Run: `bash ~/.claude/plugins/qc-router/hooks/validate-ticket.sh <ticket-path>`
+3. If validation fails, STOP and report to coordinator
+4. Only proceed with implementation if validation passes
+
 ### Write for the Reader
 
 - Know your audience (developers, end users, operators, executives)

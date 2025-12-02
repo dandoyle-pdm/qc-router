@@ -97,6 +97,14 @@ All work is tracked through tickets (location may be project-scoped or in `ticke
 - After fixes, update "Changes Made" with new commits
 - Add changelog entry for iteration
 
+### Pre-Implementation Validation
+
+Before any file modifications:
+1. Locate the ticket file for this work
+2. Run: `bash ~/.claude/plugins/qc-router/hooks/validate-ticket.sh <ticket-path>`
+3. If validation fails, STOP and report to coordinator
+4. Only proceed with implementation if validation passes
+
 ### Design With Intent
 
 Every prompt element should serve a purpose:
