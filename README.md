@@ -16,12 +16,18 @@ QC Router provides a structured quality assurance framework for Claude Code that
 ## Installation
 
 ```bash
-# Add local marketplace
+# Add local marketplace (first time only)
 /plugin marketplace add ~/.claude/plugins
 
 # Install plugin
 /plugin install qc-router@local-plugins
 ```
+
+**Restart Claude Code after installation to load the plugin.**
+
+### Updating the Plugin
+
+Content changes (hooks, agents, skills) only require a **restart** - no reinstall needed. The plugin installation registers the plugin location; contents are loaded fresh each session.
 
 ## What's Included
 
