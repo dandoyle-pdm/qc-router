@@ -6,7 +6,7 @@ sequence: 004
 parent_ticket: TICKET-qc-hook-fix-003
 title: Ticket validator for pre-work validation
 cycle_type: development
-status: in_progress
+status: critic_review
 created: 2025-12-02
 worktree_path: /home/ddoyle/workspace/worktrees/qc-router/qc-hook-fix
 ---
@@ -137,16 +137,39 @@ Benefits:
 # Creator Section
 
 ## Implementation Notes
-[To be filled by code-developer agent]
+
+Created `hooks/validate-ticket.sh` with the following validations:
+1. **worktree_path not null** - Checks the ticket has been activated
+2. **worktree_path exists** - Verifies the directory actually exists on filesystem
+3. **cwd matches worktree_path** - Ensures agent is working in the correct worktree
+4. **status is in_progress** - Confirms ticket is in active work state
+
+**Design decisions:**
+- Used `sed` instead of `grep -oP` for YAML parsing (more portable across systems)
+- Removed emojis from output per project preferences
+- Errors are written to stderr, success to stdout
+- Exit codes: 0=valid, 1=invalid, 2=file not found or usage error
+- All errors collected before reporting (shows all issues at once)
+
+Added "Pre-Implementation Validation" section to creator agents:
+- `agents/code-developer/AGENT.md` - After "Ticket Operations" section
+- `agents/tech-writer/AGENT.md` - After "Start With Clean Isolation" section
+- `agents/prompt-engineer/AGENT.md` - After "Ticket Operations" section
 
 ## Questions/Concerns
-[To be filled]
+
+Part 3 (SessionStart integration) was marked as optional in the requirements. Did not implement this in the current scope - it can be a follow-up ticket if desired.
 
 ## Changes Made
 - File changes:
+  - `hooks/validate-ticket.sh` (new, executable)
+  - `agents/code-developer/AGENT.md` (added validation section)
+  - `agents/tech-writer/AGENT.md` (added validation section)
+  - `agents/prompt-engineer/AGENT.md` (added validation section)
 - Commits:
+  - `1702291` - feat: add ticket validator for pre-work validation
 
-**Status Update**: [Date/time] - Changed status to `critic_review`
+**Status Update**: 2025-12-02 - Changed status to `critic_review`
 
 # Critic Section
 
@@ -186,6 +209,12 @@ Benefits:
 **Status Update**: [Date/time] - Changed status to `approved` or created rework ticket
 
 # Changelog
+
+## [2025-12-02] - Creator
+- Implemented hooks/validate-ticket.sh with portable sed-based YAML parsing
+- Added Pre-Implementation Validation section to 3 creator agents
+- Shellcheck passes, tested with valid and invalid tickets
+- Status changed to critic_review
 
 ## [2025-12-02] - Coordinator
 - Ticket created from ultrathink analysis
