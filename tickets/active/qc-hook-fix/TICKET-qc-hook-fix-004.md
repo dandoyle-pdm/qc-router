@@ -176,21 +176,36 @@ Part 3 (SessionStart integration) was marked as optional in the requirements. Di
 ## Audit Findings
 
 ### CRITICAL Issues
-- [ ] None identified yet
+- [ ] None identified
 
 ### HIGH Issues
-- [ ] None identified yet
+- [x] **H1: Path Matching Vulnerability (Line 33)** - The cwd matching logic uses `"$(pwd)" != "$worktree_path"*` which is vulnerable to prefix collisions. A directory `/tmp/test-worktree-other` incorrectly matches worktree_path `/tmp/test-worktree` because it shares the same prefix. **Proof:** Created test directories and demonstrated false positive. **Fix:** Change to `"$(pwd)" != "$worktree_path/"* && "$(pwd)" != "$worktree_path"` to require trailing slash or exact match.
+
+- [x] **H2: Multi-line Value Capture in YAML Parsing (Lines 18-20)** - The sed command captures ALL matching lines when duplicate keys exist or when patterns appear outside YAML frontmatter. Example: A ticket with `status: in_progress` in frontmatter and `status: critic_review` in body produces `'in_progress\ncritic_review'` which fails comparison. **Fix:** Use `sed -n '...' | head -1` to capture only first match, OR parse only within frontmatter boundaries.
 
 ### MEDIUM Issues
-- [ ] None identified yet
+- [x] **M1: YAML Parsing Not Limited to Frontmatter** - The sed patterns match anywhere in the file, not just between `---` markers. While H2's fix (head -1) mitigates multi-match, proper YAML parsing would limit to frontmatter block. Low priority since well-formed tickets won't have these patterns in body.
 
 ## Approval Decision
-[APPROVED | NEEDS_CHANGES]
+NEEDS_CHANGES
 
 ## Rationale
-[Why this decision]
+Two HIGH issues must be addressed before approval:
 
-**Status Update**: [Date/time] - Changed status to `expediter_review`
+1. **H1 (Path Matching)** - This is a security issue. An attacker could craft a malicious worktree_path that matches unintended directories, bypassing the isolation guarantee. The fix is simple: require trailing slash for subdirectory matching.
+
+2. **H2 (Multi-line Capture)** - This is a correctness issue. Real-world tickets may have YAML-like patterns in their body content (especially in code examples or documentation), causing false validation failures. The fix is simple: pipe to `head -1`.
+
+The M1 issue is acceptable debt - it can be addressed in a follow-up if needed.
+
+**Positive Observations:**
+- Shellcheck passes cleanly
+- Exit codes are correct (0/1/2)
+- Error messages are actionable
+- No command injection vectors (no eval, no shell expansion on user data)
+- Agent AGENT.md updates are correctly placed and use canonical paths
+
+**Status Update**: 2025-12-02 - NEEDS_CHANGES - Returning to creator for H1 and H2 fixes
 
 # Expediter Section
 
@@ -209,6 +224,14 @@ Part 3 (SessionStart integration) was marked as optional in the requirements. Di
 **Status Update**: [Date/time] - Changed status to `approved` or created rework ticket
 
 # Changelog
+
+## [2025-12-02] - Critic (code-reviewer)
+- Audited validate-ticket.sh and agent AGENT.md updates
+- Found H1: Path matching vulnerability (prefix collision)
+- Found H2: Multi-line YAML value capture
+- Found M1: YAML parsing not limited to frontmatter (acceptable debt)
+- Decision: NEEDS_CHANGES for H1 and H2
+- Status changed to critic_review (returning to creator)
 
 ## [2025-12-02] - Creator
 - Implemented hooks/validate-ticket.sh with portable sed-based YAML parsing
