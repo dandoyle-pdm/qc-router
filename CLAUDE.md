@@ -60,6 +60,16 @@ Select recipe based on work type:
 
 **Plugin Changes:** Use **plugin-engineer → plugin-reviewer → plugin-tester** for all plugin modifications OR standard R1 chain.
 
+### Transient Content (Second Pass)
+
+Tickets and handoff prompts are process artifacts, not specifications.
+Use **ultrathink** (extended thinking) when:
+- Creating or updating tickets
+- Generating handoff prompts
+- Writing session summaries
+
+This provides review-equivalent rigor without subagent overhead.
+
 ## Ticket Workflow
 
 1. Create from `tickets/TEMPLATE.md`

@@ -158,6 +158,14 @@ is_protected_path() {
         return 0
     fi
 
+    # Documentation files (specifications - same rigor as code)
+    if [[ "${path}" =~ \.(md|mdx|rst|adoc)$ ]]; then
+        # Exclude tickets and handoff outputs - transient content
+        if [[ ! "${path}" =~ /tickets/ ]] && [[ ! "${path}" =~ handoff-.*\.md$ ]]; then
+            return 0
+        fi
+    fi
+
     return 1
 }
 
