@@ -1,110 +1,115 @@
-# QC Router Plugin
+# QC Router
 
-Quality Cycle Router plugin for Claude Code - enables Creator/Critic/Judge quality cycles for code and documentation workflows.
+Quality Cycle Router - Creator/Critic/Judge quality cycles for code and documentation workflows.
 
 ## Overview
 
-This plugin provides:
+QC Router provides a structured quality assurance framework for Claude Code that enforces Creator/Critic/Judge patterns across different types of work. It includes specialized agents for code development, documentation, and prompt engineering, along with hooks that enforce quality cycles during sessions.
 
-- **9 Quality Cycle Agents**: code-developer, code-reviewer, code-tester, prompt-engineer, prompt-reviewer, prompt-tester, tech-writer, tech-editor, tech-publisher
-- **Quality Cycle Hooks**: Enforce quality cycle requirements on file modifications and script execution
-- **Agentic Quality Workflow Skill**: Comprehensive guide for git worktree-based quality workflows
+## Features
+
+- **9 Specialized Agents** covering code, documentation, and prompt engineering workflows
+- **Session Hooks** for automatic quality cycle context detection and enforcement
+- **Git Worktree Integration** for isolated development environments
+- **Ticket-Based Workflow** with structured handoffs between agents
 
 ## Installation
 
-1. Copy this plugin directory to `~/.claude/plugins/qc-router/`
-2. Enable the plugin in Claude Code settings
-3. Manually copy hook scripts (see Manual Steps below)
+```bash
+# Add local marketplace
+/plugin marketplace add ~/.claude/plugins
 
-## Components
+# Install plugin
+/plugin install qc-router@local-plugins
+```
+
+## What's Included
 
 ### Agents
 
-Located in `./agents/`:
+QC Router provides three complete quality cycles, each with Creator, Critic, and Judge agents:
 
-| Agent | Role | Purpose |
-|-------|------|---------|
-| code-developer | Creator | Implements code based on tickets |
-| code-reviewer | Critic | Reviews code, generates audit reports |
-| code-tester | Judge | Runs tests, makes routing decisions |
-| prompt-engineer | Creator | Designs prompts and recipes |
-| prompt-reviewer | Critic | Reviews prompt effectiveness |
-| prompt-tester | Judge | Validates prompts with sample inputs |
-| tech-writer | Creator | Writes documentation |
-| tech-editor | Critic | Reviews documentation quality |
-| tech-publisher | Judge | Approves documentation for publication |
+#### Code Quality Cycle (R1)
+
+| Agent | Role | Description |
+|-------|------|-------------|
+| **code-developer** | Creator | Writes initial code implementations and iterates based on review feedback |
+| **code-reviewer** | Critic | Performs adversarial review with CRITICAL/HIGH/MEDIUM severity levels |
+| **code-tester** | Judge | Runs tests, evaluates audits, and makes final routing decisions |
+
+#### Documentation Quality Cycle (R2)
+
+| Agent | Role | Description |
+|-------|------|-------------|
+| **tech-writer** | Creator | Creates clear documentation and iterates based on editorial feedback |
+| **tech-editor** | Critic | Performs editorial review with prioritized quality findings |
+| **tech-publisher** | Judge | Validates readability and coherency, approves for publication |
+
+#### Prompt Engineering Quality Cycle
+
+| Agent | Role | Description |
+|-------|------|-------------|
+| **prompt-engineer** | Creator | Designs prompts using pillar-based methodology |
+| **prompt-reviewer** | Critic | Reviews prompts for clarity, specificity, and edge case coverage |
+| **prompt-tester** | Judge | Tests prompt effectiveness and makes approval decisions |
 
 ### Hooks
 
-Located in `./hooks/`:
+The plugin registers two hooks that integrate with Claude Code sessions:
 
-- `hooks.json` - Hook configuration
-- `enforce-quality-cycle.sh` - Blocks protected operations outside quality cycles
-- `set-quality-cycle-context.sh` - Detects and sets quality cycle context
-- `validate-config.sh` - Validates hook configuration
+| Hook | Trigger | Purpose |
+|------|---------|---------|
+| **set-quality-cycle-context.sh** | SessionStart | Detects working context and sets quality cycle environment variables |
+| **enforce-quality-cycle.sh** | PreToolUse (Bash, Edit, Write) | Enforces quality cycle compliance before file modifications |
+
+Both hooks are security-hardened with:
+- Path validation to prevent traversal attacks
+- Command injection prevention
+- Atomic file operations
+- Session state management
 
 ### Skills
 
-Located in `./skills/agentic-quality-workflow/`:
+| Skill | Description |
+|-------|-------------|
+| **agentic-quality-workflow** | Comprehensive procedures for git worktree management and quality cycle workflows. Includes 12 reference documents covering ticket systems, code review checklists, troubleshooting, and emergency recovery. |
 
-- `SKILL.md` - Main skill guide for worktree-based quality workflows
-- `references/` - 12 detailed reference documents covering:
-  - Worktree fundamentals and operations
-  - Integration workflows
-  - Code quality workflows and procedures
-  - Code review checklists
-  - Best practices and troubleshooting
+## Quality Recipes
 
-## Quality Cycle Flow
+Select the appropriate recipe based on work type:
+
+| Recipe | Work Type | Cycle |
+|--------|-----------|-------|
+| **R1** | Production code | code-developer -> code-reviewer -> code-tester |
+| **R2** | Documentation (100+ lines) | tech-writer -> tech-editor -> tech-publisher |
+| **R3** | Handoff prompts | tech-editor (quick check) |
+| **R4** | Read-only queries | None (fast path) |
+| **R5** | Config/minor changes | Single reviewer |
+
+## Workflow Pattern
+
+All work follows the Creator/Critic/Judge pattern:
 
 ```
-Creator -> Critic(s) -> Judge -> [routing]
-```
-
-1. **Creator** implements work, updates ticket -> status: `critic_review`
-2. **Critic(s)** review, provide findings -> status: `expediter_review`
-3. **Judge** validates, makes routing decision:
-   - APPROVE -> ticket moves to `completed/{branch}/`
-   - ROUTE_BACK -> Creator addresses findings, cycle restarts
-   - ESCALATE -> coordinator intervention needed
-
-## Recipe Selection
-
-| Recipe | Work Type | Agents |
-|--------|-----------|--------|
-| R1 | Production code | code-developer -> code-reviewer -> code-tester |
-| R2 | Documentation (100+ lines) | tech-writer -> tech-editor -> tech-publisher |
-| R3 | Handoff prompts | tech-editor (quick check) |
-| R4 | Read-only queries | None (fast path) |
-| R5 | Config/minor changes | Single reviewer |
-
-## Manual Steps Required
-
-Due to hook protection, shell scripts must be copied manually:
-
-```bash
-# Copy qc-router hook scripts
-cp ~/.claude/hooks/enforce-quality-cycle.sh ~/.claude/plugins/qc-router/hooks/
-cp ~/.claude/hooks/set-quality-cycle-context.sh ~/.claude/plugins/qc-router/hooks/
-cp ~/.claude/hooks/validate-config.sh ~/.claude/plugins/qc-router/hooks/
-
-# Make scripts executable
-chmod +x ~/.claude/plugins/qc-router/hooks/*.sh
+Creator completes work -> updates ticket -> status: critic_review
+    |
+Critic(s) review -> provide findings -> status: expediter_review
+    |
+Judge validates -> makes routing decision:
+    - APPROVE -> ticket moves to completed/{branch}/
+    - ROUTE_BACK -> Creator addresses findings, cycle restarts
+    - ESCALATE -> coordinator intervention needed
 ```
 
 ## Configuration
 
-The `hooks.json` file configures:
+The plugin uses environment-based configuration through session state:
 
-- **SessionStart**: Runs `set-quality-cycle-context.sh` to detect agent context
-- **PreToolUse**: Runs `enforce-quality-cycle.sh` on Bash/Edit/Write tools
+- **Session State Directory**: `~/.claude/.session-state/`
+- **Debug Logs**: `~/.claude/logs/hooks-debug.log`
 
-Hooks use `${CLAUDE_PLUGIN_ROOT}` to reference script paths relative to the plugin root.
+No additional configuration is required after installation.
 
-## Author
+## License
 
-Dan Doyle
-
-## Version
-
-1.0.0
+MIT
