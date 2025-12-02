@@ -6,9 +6,9 @@ sequence: 003
 parent_ticket: TICKET-qc-hook-fix-002
 title: Block destructive tools on protected branches (main/master/develop)
 cycle_type: development
-status: open
+status: in_progress
 created: 2025-12-02
-worktree_path: null
+worktree_path: /home/ddoyle/workspace/worktrees/qc-router/qc-hook-fix
 ---
 
 # Requirements
