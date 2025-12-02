@@ -15,9 +15,9 @@ validate_ticket() {
 
     # Parse YAML frontmatter using sed (portable)
     local worktree_path status ticket_id
-    worktree_path=$(sed -n 's/^worktree_path:[[:space:]]*//p' "$ticket_path" | tr -d ' ')
-    status=$(sed -n 's/^status:[[:space:]]*//p' "$ticket_path" | tr -d ' ')
-    ticket_id=$(sed -n 's/^ticket_id:[[:space:]]*//p' "$ticket_path" | tr -d ' ')
+    worktree_path=$(sed -n 's/^worktree_path:[[:space:]]*//p' "$ticket_path" | head -1 | tr -d ' ')
+    status=$(sed -n 's/^status:[[:space:]]*//p' "$ticket_path" | head -1 | tr -d ' ')
+    ticket_id=$(sed -n 's/^ticket_id:[[:space:]]*//p' "$ticket_path" | head -1 | tr -d ' ')
 
     # Check 1: worktree_path is set
     if [[ "$worktree_path" == "null" || -z "$worktree_path" ]]; then
@@ -29,11 +29,17 @@ validate_ticket() {
         errors+=("worktree_path does not exist: $worktree_path")
     fi
 
-    # Check 3: cwd matches worktree_path
-    if [[ "$worktree_path" != "null" && -n "$worktree_path" && "$(pwd)" != "$worktree_path"* ]]; then
-        errors+=("Current directory does not match worktree_path")
-        errors+=("  Expected: $worktree_path")
-        errors+=("  Actual:   $(pwd)")
+    # Check 3: cwd matches worktree_path (exact match or subdirectory)
+    if [[ "$worktree_path" != "null" && -n "$worktree_path" ]]; then
+        local cwd
+        cwd=$(pwd)
+        # Require exact match OR subdirectory with trailing slash to prevent prefix collisions
+        # e.g., /tmp/test-worktree-other should NOT match /tmp/test-worktree
+        if [[ "$cwd" != "$worktree_path" && "$cwd" != "$worktree_path/"* ]]; then
+            errors+=("Current directory does not match worktree_path")
+            errors+=("  Expected: $worktree_path")
+            errors+=("  Actual:   $cwd")
+        fi
     fi
 
     # Check 4: status is in_progress
