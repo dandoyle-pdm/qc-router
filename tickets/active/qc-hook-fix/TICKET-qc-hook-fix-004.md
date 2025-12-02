@@ -6,7 +6,7 @@ sequence: 004
 parent_ticket: TICKET-qc-hook-fix-003
 title: Ticket validator for pre-work validation
 cycle_type: development
-status: critic_review
+status: expediter_review
 created: 2025-12-02
 worktree_path: /home/ddoyle/workspace/worktrees/qc-router/qc-hook-fix
 ---
@@ -207,7 +207,7 @@ Part 3 (SessionStart integration) was marked as optional in the requirements. Di
 - [x] **M1: YAML Parsing Not Limited to Frontmatter** - The sed patterns match anywhere in the file, not just between `---` markers. While H2's fix (head -1) mitigates multi-match, proper YAML parsing would limit to frontmatter block. Low priority since well-formed tickets won't have these patterns in body.
 
 ## Approval Decision
-NEEDS_CHANGES
+APPROVED
 
 ## Rationale
 Two HIGH issues must be addressed before approval:
@@ -227,6 +227,24 @@ The M1 issue is acceptable debt - it can be addressed in a follow-up if needed.
 
 **Status Update**: 2025-12-02 - NEEDS_CHANGES - Returning to creator for H1 and H2 fixes
 
+## Re-Audit (2025-12-02)
+
+**H1 Fix Verified:**
+- Line 38 now uses: `"$cwd" != "$worktree_path" && "$cwd" != "$worktree_path/"*`
+- Tested: `/tmp/test-worktree-other` correctly REJECTED when worktree_path is `/tmp/test-worktree`
+- Tested: Exact match and subdirectory still work correctly
+
+**H2 Fix Verified:**
+- Lines 18-20 now use `| head -1` for all YAML parsing
+- Tested: Ticket with duplicate YAML-like patterns in body correctly parses only frontmatter values
+- Parsed values confirmed: only first occurrence of each key is captured
+
+**Shellcheck:** PASS (no warnings)
+
+**Decision:** APPROVED - Both H1 and H2 fixes are correct and complete.
+
+**Status Update**: 2025-12-02 - APPROVED - Forwarding to expediter_review
+
 # Expediter Section
 
 ## Validation Results
@@ -244,6 +262,13 @@ The M1 issue is acceptable debt - it can be addressed in a follow-up if needed.
 **Status Update**: [Date/time] - Changed status to `approved` or created rework ticket
 
 # Changelog
+
+## [2025-12-02] - Critic Re-Audit (code-reviewer)
+- Verified H1 fix: Path matching with trailing slash requirement works correctly
+- Verified H2 fix: head -1 correctly captures only first YAML value
+- Shellcheck passes
+- Decision: APPROVED
+- Status changed to expediter_review
 
 ## [2025-12-02] - Creator Iteration 2 (code-developer)
 - Fixed H1: Path matching vulnerability with trailing slash requirement
