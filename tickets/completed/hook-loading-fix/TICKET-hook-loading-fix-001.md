@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Fix enforcement hook loading and branch detection
 cycle_type: development
-status: expediter_review
+status: approved
 created: 2025-12-02 17:30
 worktree_path: null
 ---
@@ -198,21 +198,87 @@ The only note is pre-existing shellcheck warnings that should be addressed in a 
 # Expediter Section
 
 ## Validation Results
-- Automated tests: [PASS/FAIL details]
-- Linting: [PASS/FAIL]
-- Type checking: [PASS/FAIL]
-- Security scans: [PASS/FAIL]
-- Build: [PASS/FAIL]
+
+### Syntax Check: PASS
+- **JSON (hooks.json)**: Valid JSON syntax confirmed via `jq .`
+- **Bash (enforce-quality-cycle.sh)**: Valid syntax confirmed via `bash -n`
+
+### Shellcheck: PASS with Notes
+- **Exit Status**: Warnings only (no errors)
+- **Findings**: Pre-existing SC2034 (unused variables: SCRIPT_DIR, RED, YELLOW, NC) and SC2155 (declare and assign separately)
+- **Assessment**: These are pre-existing issues not introduced by this change. No new warnings from the fix.
+
+### Function Unit Tests: PASS
+All 7 tests passed:
+1. `get_file_repo_branch()` - Plugin repo file returns 'main'
+2. `get_file_repo_branch()` - Non-existent file in repo returns 'main' (walks up directories)
+3. `get_file_repo_branch()` - /tmp (non-git) returns empty
+4. `get_file_repo_branch()` - Directory path returns 'main'
+5. `is_file_on_protected_branch()` - Plugin file correctly detected as protected
+6. `is_file_on_protected_branch()` - /tmp file correctly detected as not protected
+7. `is_file_on_protected_branch()` - Non-existent file in repo correctly detected as protected
+
+### Integration Tests: PASS
+All 5 integration tests passed with correct exit codes:
+1. **Non-git file** (Edit /tmp/test.txt): Exit 0 (allowed)
+2. **Protected branch file** (Edit plugin/README.md from CWD=/tmp): Exit 2 (blocked)
+3. **MAIN_OVERRIDE only** (bypasses branch, still blocked by QC): Exit 2 (correct)
+4. **Regular bash command** (ls -la): Exit 0 (allowed)
+5. **Both overrides** (MAIN_OVERRIDE + QC_OVERRIDE): Exit 0 (allowed)
+
+### Critical Test: CWD vs File Path Branch Detection
+Verified the KEY FIX works correctly:
+- **CWD**: /tmp (not a git repo)
+- **File**: /home/ddoyle/.claude/plugins/qc-router/README.md (on main branch)
+- **Result**: Hook correctly detected file is on protected branch despite CWD being /tmp
+
+This confirms the branch detection now uses the file's directory, not CWD.
 
 ## Quality Gate Decision
-[APPROVE | CREATE_REWORK_TICKET | ESCALATE]
+**APPROVE**
+
+## Rationale
+1. Both bugs are correctly fixed:
+   - hooks.json uses `${CLAUDE_PLUGIN_ROOT}` for absolute path resolution
+   - enforce-quality-cycle.sh detects branch from file path, not CWD
+2. All acceptance criteria met:
+   - [x] hooks.json uses CLAUDE_PLUGIN_ROOT for all command paths
+   - [x] enforce-quality-cycle.sh checks branch based on file path directory
+   - [x] Hook correctly blocks Edit/Write on protected branches regardless of CWD
+   - [x] Hook correctly allows Edit/Write on feature branches regardless of CWD
+   - [x] All existing hook functionality preserved (security validations, audit logging)
+3. Security review passed (no new injection vectors, proper quoting maintained)
+4. Backward compatibility preserved (original functions kept)
 
 ## Next Steps
-[If approved: integration steps | If rework: what needs fixing | If escalate: why]
+1. Ticket moved to `tickets/completed/hook-loading-fix/`
+2. Claude Code restart required for hooks to load with new paths
+3. Consider future cleanup ticket for shellcheck warnings (SC2034, SC2155)
 
-**Status Update**: [Date/time] - Changed status to `approved` or created `TICKET-{session-id}-{next-seq}`
+**Status Update**: 2025-12-02 18:30 - Changed status to `approved`
 
 # Changelog
+
+## [2025-12-02 18:30] - Expediter Approval
+- Final validation completed by code-tester
+- All syntax checks passed (JSON, bash)
+- Shellcheck passed (pre-existing warnings noted, no new issues)
+- Function unit tests: 7/7 passed
+- Integration tests: 5/5 passed with correct exit codes
+- Quality gate decision: APPROVED
+- Ticket moved to completed
+
+## [2025-12-02 18:25] - Critic Approval
+- Security review passed
+- Correctness review passed
+- Edge cases verified
+- Approved for expediter review
+
+## [2025-12-02 17:45] - Creator Implementation
+- Fixed hooks.json with CLAUDE_PLUGIN_ROOT paths
+- Added get_file_repo_branch() and is_file_on_protected_branch() functions
+- Updated protected branch check to use file path, not CWD
+- Commits: cfb4c24, d57942c, adcdda2
 
 ## [2025-12-02 17:30] - Investigation
 - Root cause identified: two bugs preventing enforcement
