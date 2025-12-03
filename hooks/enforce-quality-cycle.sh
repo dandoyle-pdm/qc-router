@@ -113,10 +113,72 @@ is_protected_branch() {
     esac
 }
 
-# Get current branch name for error messages
+# Get current branch name for error messages (uses CWD)
 get_current_branch() {
     local cwd="${CWD:-$(pwd)}"
     git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"
+}
+
+# Get the git branch for a file path (uses file's directory, not CWD)
+# This correctly handles worktrees where the file may be on a different branch than CWD
+get_file_repo_branch() {
+    local file_path="$1"
+
+    # Get the directory containing the file
+    local file_dir
+    if [[ -d "$file_path" ]]; then
+        file_dir="$file_path"
+    else
+        file_dir=$(dirname "$file_path")
+    fi
+
+    # Check if we can resolve the directory (it may not exist yet)
+    if [[ ! -d "$file_dir" ]]; then
+        # File doesn't exist yet, try walking up to find existing directory
+        local check_dir="$file_dir"
+        while [[ ! -d "$check_dir" ]] && [[ "$check_dir" != "/" ]]; do
+            check_dir=$(dirname "$check_dir")
+        done
+        if [[ -d "$check_dir" ]]; then
+            file_dir="$check_dir"
+        else
+            # Cannot determine, return empty
+            echo ""
+            return 1
+        fi
+    fi
+
+    # Get branch from the file's directory (handles worktrees correctly)
+    if git -C "$file_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        git -C "$file_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"
+        return 0
+    else
+        # Not a git repo
+        echo ""
+        return 1
+    fi
+}
+
+# Check if a specific file path is on a protected branch
+is_file_on_protected_branch() {
+    local file_path="$1"
+
+    local branch
+    branch=$(get_file_repo_branch "$file_path")
+
+    if [[ -z "$branch" ]]; then
+        return 1  # Not in a git repo, not protected
+    fi
+
+    # Protected branches
+    case "$branch" in
+        main|master|develop|release/*)
+            return 0  # Protected
+            ;;
+        *)
+            return 1  # Not protected
+            ;;
+    esac
 }
 
 # Check if we're in a quality cycle context
@@ -411,29 +473,31 @@ main() {
 
     # HARD GATE: Protected branch check for destructive tools
     # This runs BEFORE quality cycle checks - branch protection is non-negotiable
+    # FIX: Now uses file path to determine branch, not CWD (handles worktrees correctly)
     case "${tool_name}" in
         Edit|Write)
-            if is_protected_branch; then
-                local current_branch
-                current_branch=$(get_current_branch)
+            # Extract file_path first - we need it for branch detection
+            local target_file_path
+            if command -v jq >/dev/null 2>&1; then
+                target_file_path=$(printf '%s\n' "${json_input}" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || target_file_path=""
+            else
+                target_file_path=$(printf '%s\n' "${json_input}" | grep -oP '"file_path"\s*:\s*"\K[^"]+' || echo "")
+            fi
+
+            # Check if the FILE is on a protected branch (not CWD's branch)
+            if [[ -n "$target_file_path" ]] && is_file_on_protected_branch "$target_file_path"; then
+                local file_branch
+                file_branch=$(get_file_repo_branch "$target_file_path")
 
                 # Check for explicit main branch override
                 if [[ "${CLAUDE_MAIN_OVERRIDE:-false}" == "true" ]]; then
                     # Log override usage for audit trail
-                    local override_msg="[$(date -Iseconds)] MAIN_OVERRIDE used - session: ${SESSION_ID:-unknown}, tool: ${tool_name}, branch: ${current_branch}, cwd: ${CWD:-unknown}"
+                    local override_msg="[$(date -Iseconds)] MAIN_OVERRIDE used - session: ${SESSION_ID:-unknown}, tool: ${tool_name}, file_branch: ${file_branch}, file: ${target_file_path}, cwd: ${CWD:-unknown}"
                     debug_log "AUDIT: ${override_msg}"
                     # Allow operation to continue (will still hit QC checks)
                 else
-                    # Extract file_path for error message
-                    local file_path_preview
-                    if command -v jq >/dev/null 2>&1; then
-                        file_path_preview=$(printf '%s\n' "${json_input}" | jq -r '.tool_input.file_path // ""' 2>/dev/null) || file_path_preview=""
-                    else
-                        file_path_preview=$(printf '%s\n' "${json_input}" | grep -oP '"file_path"\s*:\s*"\K[^"]+' || echo "")
-                    fi
-
-                    debug_log "Protected branch write blocked: branch=${current_branch}, tool=${tool_name}, target=${file_path_preview}"
-                    generate_branch_error_message "${tool_name}" "${current_branch}" "${file_path_preview}" >&2
+                    debug_log "Protected branch write blocked: file_branch=${file_branch}, tool=${tool_name}, target=${target_file_path}"
+                    generate_branch_error_message "${tool_name}" "${file_branch}" "${target_file_path}" >&2
                     exit 2
                 fi
             fi
