@@ -6,9 +6,9 @@ sequence: 001
 parent_ticket: null
 title: Add production and staging to protected branches
 cycle_type: development
-status: open
+status: critic_review
 created: 2025-12-02 18:15
-worktree_path: null
+worktree_path: /home/ddoyle/workspace/worktrees/qc-router/protected-branches
 ---
 
 # Requirements
@@ -54,11 +54,42 @@ Team workflow prefers branches created from staging. Production should never hav
 # Creator Section
 
 ## Implementation Notes
-[To be filled by code-developer]
+
+### Approach
+Updated `enforce-quality-cycle.sh` to support three-tier branch protection:
+- **Tier 1 (Block)**: main, master, develop, production, release/* - returns 0
+- **Tier 2 (Warn)**: staging - returns 2
+- **Tier 3 (Allow)**: all other branches - returns 1
+
+### Key Changes
+
+1. **`is_file_on_protected_branch()` (lines 162-186)**
+   - Added documentation comment for return codes
+   - Added `production` to the fully protected case (return 0)
+   - Added `staging` as new case returning 2 (warning)
+
+2. **`generate_staging_warning_message()` (lines 423-448)**
+   - New function with yellow warning box styling
+   - Informs user they're on staging branch
+   - Suggests: `git checkout -b feature/your-feature staging`
+   - Lists benefits of branching from staging
+   - Ends with "Proceeding with operation..."
+
+3. **`main()` branch check logic (lines 505-551)**
+   - Refactored to capture return code from `is_file_on_protected_branch()`
+   - Uses case statement to handle all three return codes
+   - Code 0: Block (existing behavior)
+   - Code 2: Log warning + show warning message + allow
+   - Code 1: Allow silently (existing behavior)
+
+### Testing Notes for Reviewer
+- Syntax check passes: `bash -n enforce-quality-cycle.sh`
+- Warning is output to stderr (non-blocking)
+- Debug log receives warning entry for audit trail
 
 ## Changes Made
-- File changes:
-- Commits:
+- File changes: `hooks/enforce-quality-cycle.sh` (+62/-16 lines)
+- Commits: `6569295` feat: add production and staging branch protection
 
 # Critic Section
 
@@ -77,6 +108,10 @@ Team workflow prefers branches created from staging. Production should never hav
 [APPROVE | CREATE_REWORK_TICKET | ESCALATE]
 
 # Changelog
+
+## [2025-12-02 18:30] - Creator Phase Complete
+- Implementation complete, ready for critic review
+- Commit: 6569295
 
 ## [2025-12-02 18:15] - Created
 - Ticket created for adding production/staging branch handling
