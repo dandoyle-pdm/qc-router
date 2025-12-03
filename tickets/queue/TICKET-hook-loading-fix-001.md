@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Fix enforcement hook loading and branch detection
 cycle_type: development
-status: open
+status: critic_review
 created: 2025-12-02 17:30
 worktree_path: null
 ---
@@ -72,16 +72,52 @@ This undermines the entire quality cycle enforcement for ALL projects using the 
 # Creator Section
 
 ## Implementation Notes
-[To be filled by code-developer]
+
+### Bug 1 Fix: Relative paths in hooks.json
+Changed both hook command paths from relative (`hooks/...`) to use the `${CLAUDE_PLUGIN_ROOT}` variable:
+- `hooks/set-quality-cycle-context.sh` -> `${CLAUDE_PLUGIN_ROOT}/hooks/set-quality-cycle-context.sh`
+- `hooks/enforce-quality-cycle.sh` -> `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-quality-cycle.sh`
+
+This ensures hooks load correctly regardless of the session's working directory.
+
+### Bug 2 Fix: Branch detection using file path
+
+**Added two new functions:**
+
+1. `get_file_repo_branch(file_path)` - Determines the git branch from the file's directory, not CWD. Key logic:
+   - Extracts the directory containing the file
+   - If directory doesn't exist (new file), walks up parent directories to find existing directory
+   - Uses `git -C <dir>` to query the branch from that directory
+   - Correctly handles git worktrees where the file's directory is on a different branch than CWD
+
+2. `is_file_on_protected_branch(file_path)` - Checks if a file path is on a protected branch using the new function
+
+**Updated protected branch check in main():**
+- Moved file path extraction BEFORE the branch check (was extracting after)
+- Changed from `is_protected_branch()` (uses CWD) to `is_file_on_protected_branch(target_file_path)`
+- Updated audit logging to include `file_branch` instead of just CWD branch
+- Added comment explaining the fix
+
+**Design decisions:**
+- Kept the old `is_protected_branch()` and `get_current_branch()` functions intact for backward compatibility (they may be used elsewhere)
+- New functions are additive, not replacing existing ones
+- Parent directory traversal handles edge case of writing to new directories
 
 ## Questions/Concerns
-[To be filled by code-developer]
+- The original `is_protected_branch()` function is now unused in the code. Consider removing it in a future cleanup ticket to avoid confusion.
+- Edge case: If a file path points to a non-existent directory outside any git repo, the check returns "not protected" (allows the operation). This is consistent with the original behavior.
 
 ## Changes Made
 - File changes:
-- Commits:
+  - `hooks/hooks.json`: Updated both command paths to use `${CLAUDE_PLUGIN_ROOT}`
+  - `hooks/enforce-quality-cycle.sh`: Added `get_file_repo_branch()` and `is_file_on_protected_branch()` functions, updated protected branch check logic
 
-**Status Update**: [Date/time] - Changed status to `critic_review`
+- Commits:
+  - `cfb4c24` fix(hooks): use CLAUDE_PLUGIN_ROOT for hook command paths
+  - `d57942c` fix(hooks): detect protected branch from file path, not CWD
+  - `adcdda2` docs: update TICKET-hook-loading-fix-001 with implementation notes
+
+**Status Update**: 2025-12-02 17:45 - Changed status to `critic_review`
 
 # Critic Section
 
