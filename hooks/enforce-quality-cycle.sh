@@ -160,6 +160,7 @@ get_file_repo_branch() {
 }
 
 # Check if a specific file path is on a protected branch
+# Returns: 0 = protected (block), 1 = not protected (allow), 2 = warning (allow with warning)
 is_file_on_protected_branch() {
     local file_path="$1"
 
@@ -170,13 +171,16 @@ is_file_on_protected_branch() {
         return 1  # Not in a git repo, not protected
     fi
 
-    # Protected branches
+    # Protected branches - fully blocked
     case "$branch" in
-        main|master|develop|release/*)
-            return 0  # Protected
+        main|master|develop|production|release/*)
+            return 0  # Protected - block
+            ;;
+        staging)
+            return 2  # Warning only - allow with warning
             ;;
         *)
-            return 1  # Not protected
+            return 1  # Not protected - allow
             ;;
     esac
 }
@@ -416,6 +420,33 @@ Branch protection is about WHERE you write, not quality gates.
 EOFMSG
 }
 
+# Generate warning message for staging branch edits (non-blocking)
+generate_staging_warning_message() {
+    local tool="$1"
+    local target="${2:-}"
+
+    cat <<EOFMSG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  STAGING BRANCH - Proceeding with Warning
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You're editing on the staging branch.
+Tool: ${tool}
+Target: ${target}
+
+Consider creating a feature branch from staging:
+  git checkout -b feature/your-feature staging
+
+This helps:
+  - Keep staging clean for integration testing
+  - Enable easier rollback if needed
+  - Follow the team's branching workflow
+
+Proceeding with operation...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOFMSG
+}
+
 # Main execution
 main() {
     # Clean up stale sessions periodically
@@ -485,21 +516,36 @@ main() {
             fi
 
             # Check if the FILE is on a protected branch (not CWD's branch)
-            if [[ -n "$target_file_path" ]] && is_file_on_protected_branch "$target_file_path"; then
+            # Return codes: 0 = protected (block), 1 = not protected (allow), 2 = warning (allow with warning)
+            if [[ -n "$target_file_path" ]]; then
+                local branch_check_result
+                is_file_on_protected_branch "$target_file_path" && branch_check_result=0 || branch_check_result=$?
+
                 local file_branch
                 file_branch=$(get_file_repo_branch "$target_file_path")
 
-                # Check for explicit main branch override
-                if [[ "${CLAUDE_MAIN_OVERRIDE:-false}" == "true" ]]; then
-                    # Log override usage for audit trail
-                    local override_msg="[$(date -Iseconds)] MAIN_OVERRIDE used - session: ${SESSION_ID:-unknown}, tool: ${tool_name}, file_branch: ${file_branch}, file: ${target_file_path}, cwd: ${CWD:-unknown}"
-                    debug_log "AUDIT: ${override_msg}"
-                    # Allow operation to continue (will still hit QC checks)
-                else
-                    debug_log "Protected branch write blocked: file_branch=${file_branch}, tool=${tool_name}, target=${target_file_path}"
-                    generate_branch_error_message "${tool_name}" "${file_branch}" "${target_file_path}" >&2
-                    exit 2
-                fi
+                case "$branch_check_result" in
+                    0)  # Fully protected - block unless override
+                        # Check for explicit main branch override
+                        if [[ "${CLAUDE_MAIN_OVERRIDE:-false}" == "true" ]]; then
+                            # Log override usage for audit trail
+                            local override_msg="[$(date -Iseconds)] MAIN_OVERRIDE used - session: ${SESSION_ID:-unknown}, tool: ${tool_name}, file_branch: ${file_branch}, file: ${target_file_path}, cwd: ${CWD:-unknown}"
+                            debug_log "AUDIT: ${override_msg}"
+                            # Allow operation to continue (will still hit QC checks)
+                        else
+                            debug_log "Protected branch write blocked: file_branch=${file_branch}, tool=${tool_name}, target=${target_file_path}"
+                            generate_branch_error_message "${tool_name}" "${file_branch}" "${target_file_path}" >&2
+                            exit 2
+                        fi
+                        ;;
+                    2)  # Warning only (staging) - log and allow
+                        debug_log "WARNING: Staging branch edit - file_branch=${file_branch}, tool=${tool_name}, target=${target_file_path}"
+                        generate_staging_warning_message "${tool_name}" "${target_file_path}" >&2
+                        # Allow operation to continue (exit 0 at end of hook)
+                        ;;
+                    *)  # Not protected - continue normally
+                        ;;
+                esac
             fi
             ;;
     esac
