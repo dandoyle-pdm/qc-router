@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Fix enforcement hook loading and branch detection
 cycle_type: development
-status: critic_review
+status: expediter_review
 created: 2025-12-02 17:30
 worktree_path: null
 ---
@@ -124,21 +124,76 @@ This ensures hooks load correctly regardless of the session's working directory.
 ## Audit Findings
 
 ### CRITICAL Issues
-- [ ] (None identified yet)
+- [x] None identified
 
 ### HIGH Issues
-- [ ] (None identified yet)
+- [x] None identified
 
 ### MEDIUM Issues
-- [ ] (None identified yet)
+- [x] **Pre-existing shellcheck warnings** - Unused variables (SCRIPT_DIR, RED, YELLOW, NC) and SC2155 warnings exist in the codebase. These are not introduced by this change and should be addressed in a separate cleanup ticket.
+
+## Security Review
+
+**Command Injection**: No new vectors introduced. The new `get_file_repo_branch()` function:
+- Takes file_path as input and extracts directory using `dirname` (safe)
+- Uses `git -C "$file_dir"` with quoted variable (safe)
+- No user-controlled data flows into command execution unsafely
+
+**Path Traversal**: The function walks up parent directories to find valid git repos, but this is intentional behavior to handle new file creation. The path validation happens separately via `validate_file_path()` before branch checking occurs in the main flow.
+
+**Race Conditions**: None introduced. File existence checks are for informational purposes only.
+
+**Audit Logging**: Improved - now includes `file_branch` and `file` path in MAIN_OVERRIDE audit logs, providing better forensic information.
+
+## Correctness Review
+
+**Bug 1 Fix (hooks.json)**:
+- Changed relative paths to `${CLAUDE_PLUGIN_ROOT}/hooks/...`
+- JSON syntax validated
+- Follows Claude Code plugin path resolution conventions
+
+**Bug 2 Fix (branch detection)**:
+- New `get_file_repo_branch()` correctly uses file's directory, not CWD
+- Parent directory walk-up handles new file creation edge case
+- Returns empty string for non-git directories (correctly allows operation)
+- Original `is_protected_branch()` and `get_current_branch()` preserved for backward compatibility
+
+**Edge Cases Tested**:
+1. Existing file in git repo - returns correct branch
+2. Non-existent file in existing directory - returns correct branch
+3. Non-existent file in non-existent directory (parent exists) - walks up, returns correct branch
+4. File outside git repo - returns empty (allows operation)
+5. Path with `..` components - handles correctly
+6. Deep non-existent nested path - walks up to repo root
+7. Completely non-existent path (e.g., `/nonexistent/...`) - returns empty
+
+## Code Quality
+
+- Bash syntax validated (bash -n passes)
+- Follows existing code patterns in the file
+- Clear comments explaining the fix and function behavior
+- Functions are additive, not replacing existing ones
+- Debug logging maintained
 
 ## Approval Decision
-[APPROVED | NEEDS_CHANGES]
+APPROVED
 
 ## Rationale
-[Why this decision]
 
-**Status Update**: [Date/time] - Changed status to `expediter_review`
+The implementation correctly fixes both identified bugs:
+1. Hook loading now uses `${CLAUDE_PLUGIN_ROOT}` for absolute path resolution
+2. Protected branch detection now uses the file's directory, not CWD, correctly handling worktree scenarios
+
+The code is:
+- Secure (no injection vectors, proper quoting)
+- Correct (all edge cases handled appropriately)
+- Backward compatible (original functions preserved)
+- Well-documented (clear comments)
+- Tested (syntax valid, manual function testing passed)
+
+The only note is pre-existing shellcheck warnings that should be addressed in a future cleanup ticket, but these are not blockers.
+
+**Status Update**: 2025-12-02 18:25 - Changed status to `expediter_review`
 
 # Expediter Section
 
