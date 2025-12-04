@@ -8,7 +8,7 @@ QC Router provides a structured quality assurance framework for Claude Code that
 
 ## Features
 
-- **9 Specialized Agents** covering code, documentation, and prompt engineering workflows
+- **12 Specialized Agents** covering code, documentation, prompt engineering, and plugin development workflows
 - **Session Hooks** for automatic quality cycle context detection and enforcement
 - **Git Worktree Integration** for isolated development environments
 - **Ticket-Based Workflow** with structured handoffs between agents
