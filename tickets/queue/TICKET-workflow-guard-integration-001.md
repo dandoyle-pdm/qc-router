@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Document qc-router integration with workflow-guard plugin
 cycle_type: documentation
-status: open
+status: critic_review
 created: 2025-12-03 22:30
 worktree_path: null
 ---
@@ -78,16 +78,39 @@ All 12 agents already have the identity pattern in their invocation templates:
 # Creator Section
 
 ## Implementation Notes
-[To be filled by tech-writer]
+
+Implemented documentation for qc-router integration with workflow-guard plugin as specified.
+
+**README.md updates:**
+- Added "Integration with workflow-guard" section after "Workflow Pattern" and before "Configuration"
+- Documented how workflow-guard blocks file modifications unless quality agent detected
+- Explained the agent identity marker pattern: "working as the {agent-name} agent"
+- Listed all 12 recognized quality agents organized by cycle (Code, Documentation, Prompt, Plugin)
+- Included compatibility maintenance guidelines (3 points for AGENT.md modifications)
+
+**DEVELOPER.md updates:**
+- Added "Agent Identity Pattern (CRITICAL)" section to "Adding or Modifying Agents"
+- Added examples table showing identity strings from code-developer, tech-writer, plugin-engineer
+- Added explanatory note about why identity patterns matter for workflow-guard integration
+- Added comprehensive "Sister Project: workflow-guard" section before "Additional Resources" including:
+  - Dependency direction mermaid diagram showing workflow-guard depends on qc-router
+  - Integration mechanism sequence diagram showing the full flow from user request through Task tool to workflow-guard hook verification
+  - Breaking changes to avoid (3 numbered items)
+  - Process for adding new quality agents (4 numbered steps)
+  - Current recognized agents table (4 cycles x 3 roles = 12 agents)
 
 ## Questions/Concerns
-[To be filled by tech-writer]
+
+None. All acceptance criteria addressed as specified. Existing DEVELOPER.md was comprehensive so I extended it rather than replacing it.
 
 ## Changes Made
 - File changes:
+  - `README.md` - Added integration section (~50 lines)
+  - `DEVELOPER.md` - Added agent identity pattern section (~20 lines) and sister project section (~90 lines)
 - Commits:
+  - `ff2ab02` - docs: add workflow-guard integration documentation
 
-**Status Update**: [Date/time] - Changed status to `critic_review`
+**Status Update**: [2025-12-03 23:15] - Changed status to `critic_review`
 
 # Critic Section
 
@@ -128,6 +151,13 @@ All 12 agents already have the identity pattern in their invocation templates:
 **Status Update**: [Date/time] - Changed status to `approved` or created `TICKET-{session-id}-{next-seq}`
 
 # Changelog
+
+## [2025-12-03 23:15] - tech-writer
+- Implemented README.md integration section with all acceptance criteria
+- Extended DEVELOPER.md with agent identity pattern and sister project sections
+- Added mermaid diagrams (dependency direction, integration mechanism sequence)
+- Committed changes: ff2ab02
+- Status changed to critic_review
 
 ## [2025-12-03 22:30] - Coordinator
 - Ticket created with full context from audit
