@@ -108,6 +108,55 @@ Judge validates -> makes routing decision:
     - ESCALATE -> coordinator intervention needed
 ```
 
+## Integration with workflow-guard
+
+The workflow-guard plugin (`~/.claude/plugins/workflow-guard/`) uses qc-router agent identities to enforce quality cycle requirements.
+
+### How It Works
+
+1. workflow-guard blocks file modifications (Edit/Write/NotebookEdit) unless a quality agent is detected
+2. When you dispatch a quality agent via Task tool, the AGENT.md content appears in the subagent's transcript
+3. workflow-guard reads the transcript and looks for agent identity markers
+4. If a recognized quality agent is found, the modification is allowed
+
+### Agent Identity Markers
+
+Each AGENT.md contains an identity string in its invocation template:
+
+```
+working as the {agent-name} agent
+```
+
+Example from plugin-engineer:
+
+```
+You are a pragmatic plugin developer working as the plugin-engineer agent in a quality cycle workflow.
+```
+
+### Recognized Quality Agents
+
+workflow-guard recognizes these agents:
+
+**Code Quality Cycle:**
+- code-developer, code-reviewer, code-tester
+
+**Documentation Quality Cycle:**
+- tech-writer, tech-editor, tech-publisher
+
+**Prompt Engineering Quality Cycle:**
+- prompt-engineer, prompt-reviewer, prompt-tester
+
+**Plugin Quality Cycle:**
+- plugin-engineer, plugin-reviewer, plugin-tester
+
+### Maintaining Compatibility
+
+When creating or modifying agent AGENT.md files:
+
+1. Keep the identity string pattern: "working as the {name} agent"
+2. Place it early in the invocation template
+3. Ensure it's part of the prompt that gets sent to the subagent
+
 ## Configuration
 
 The plugin uses environment-based configuration through session state:

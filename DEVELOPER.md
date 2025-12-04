@@ -106,9 +106,30 @@ Step-by-step workflows...
 
 1. Create directory: `agents/{new-agent}/`
 2. Create `AGENT.md` with frontmatter and required sections
-3. Follow patterns from existing agents (code-developer is comprehensive)
-4. Test by invoking via Task tool
-5. **No restart needed** - agents are loaded dynamically
+3. **Include identity pattern** (see below)
+4. Follow patterns from existing agents (code-developer is comprehensive)
+5. Test by invoking via Task tool
+6. **No restart needed** - agents are loaded dynamically
+
+### Agent Identity Pattern (CRITICAL)
+
+Every agent MUST include the identity pattern in its invocation template:
+
+```markdown
+You are a [descriptor] working as the {agent-name} agent in a quality cycle workflow.
+```
+
+This pattern is used by sister project workflow-guard to detect quality context. See [Sister Project: workflow-guard](#sister-project-workflow-guard) for details.
+
+**Examples from existing agents:**
+
+| Agent | Identity String |
+|-------|-----------------|
+| code-developer | "You are a pragmatic software developer working as the code-developer agent in a quality cycle workflow." |
+| tech-writer | "You are a technical writer working as the tech-writer agent in a documentation quality cycle workflow." |
+| plugin-engineer | "You are a pragmatic plugin developer working as the plugin-engineer agent in a quality cycle workflow." |
+
+**Why this matters**: workflow-guard searches subagent transcripts for these identity strings. Without the pattern, the agent's file modifications will be blocked.
 
 ### Pattern: Creator Agents
 
@@ -472,6 +493,93 @@ tail -f ~/.claude/logs/hooks-debug.log
 4. **Quality cycles mandatory** - All work goes through Creator/Critic/Judge
 5. **Worktree isolation** - All development in dedicated worktrees, never on branches
 6. **Ticket tracking** - All work tracked through project's ticket system
+
+## Sister Project: workflow-guard
+
+qc-router agents are used by workflow-guard to enforce quality cycle requirements. This is a critical integration that requires coordination when making changes.
+
+### Dependency Direction
+
+```mermaid
+graph LR
+    WG[workflow-guard] -->|reads transcripts for| QCR[qc-router]
+    QCR -->|provides agent definitions with| ID[identity markers]
+
+    style WG fill:#f9f,stroke:#333,stroke-width:2px
+    style QCR fill:#bbf,stroke:#333,stroke-width:2px
+    style ID fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+workflow-guard depends on qc-router's agent identity patterns. This is a one-way dependency:
+
+- workflow-guard reads qc-router agent transcripts
+- qc-router does not need workflow-guard to function
+- Changes to qc-router agent identities can break workflow-guard
+
+### Integration Mechanism
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Claude as Claude Code
+    participant WG as workflow-guard Hook
+    participant Task as Task Tool
+    participant Agent as QC Agent (subagent)
+
+    User->>Claude: Request work
+    Claude->>Task: Dispatch code-developer
+    Task->>Agent: Subagent with AGENT.md prompt
+    Note over Agent: Prompt contains identity:<br/>"working as the code-developer agent"
+    Agent->>Claude: Edit file request
+    Claude->>WG: PreToolUse hook
+    WG->>WG: Search transcript for<br/>agent identity patterns
+    WG-->>Claude: Allow (identity found)
+    Claude->>Agent: Edit proceeds
+```
+
+### Breaking Changes to Avoid
+
+1. **Never remove the identity pattern** from AGENT.md invocation templates
+   - Pattern: "working as the {agent-name} agent"
+   - Location: Must be in the invocation template section
+
+2. **Never rename agents** without coordinating with workflow-guard
+   - workflow-guard maintains a list of recognized agent names
+   - Renaming requires updating both projects
+
+3. **Keep identity string early** in the prompt
+   - workflow-guard searches the transcript
+   - Earlier placement ensures detection
+
+### Adding New Quality Agents
+
+When adding new quality agents to qc-router:
+
+1. **Include identity pattern in AGENT.md**
+   ```markdown
+   You are a [descriptor] working as the {new-agent-name} agent in a quality cycle workflow.
+   ```
+
+2. **Document the new agent**
+   - Add to README.md agent tables
+   - Update workflow-guard integration notes
+
+3. **Coordinate with workflow-guard**
+   - Add agent name to workflow-guard's recognized list
+   - Test that workflow-guard allows the new agent's operations
+
+4. **Test integration**
+   - Verify agent identity appears in transcript
+   - Verify workflow-guard recognizes and allows the agent
+
+### Current Recognized Agents
+
+| Cycle | Creator | Critic | Judge |
+|-------|---------|--------|-------|
+| Code | code-developer | code-reviewer | code-tester |
+| Documentation | tech-writer | tech-editor | tech-publisher |
+| Prompt | prompt-engineer | prompt-reviewer | prompt-tester |
+| Plugin | plugin-engineer | plugin-reviewer | plugin-tester |
 
 ## Additional Resources
 
