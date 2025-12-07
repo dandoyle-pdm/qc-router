@@ -1,0 +1,347 @@
+# =============================================================================
+# Claude Hooks Engine - Conditions Library
+# =============================================================================
+# Reusable condition definitions that can be referenced in rules.
+# Think of these as the "if" statements in your rules.
+# =============================================================================
+
+version: "1.0"
+
+conditions:
+  # ===========================================================================
+  # BASH COMMAND PATTERNS
+  # ===========================================================================
+  
+  # File Redirection Detection
+  is-output-redirect:
+    type: regex
+    field: tool_input.command
+    pattern: '>\s*[^>|&]'  # Matches > but not >> or >| or >&
+    description: "Detects output redirection (>)"
+  
+  is-append-redirect:
+    type: regex
+    field: tool_input.command
+    pattern: '>>'
+    description: "Detects append redirection (>>)"
+  
+  is-any-redirect:
+    type: compound
+    any:
+      - ref: is-output-redirect
+      - ref: is-append-redirect
+  
+  # Destructive Commands
+  is-destructive-rm:
+    type: regex
+    field: tool_input.command
+    pattern: 'rm\s+.*-[rf]'
+    flags: [ignorecase]
+    description: "Detects rm with -r or -f flags"
+  
+  is-any-rm:
+    type: regex
+    field: tool_input.command
+    pattern: '\brm\s+'
+    description: "Detects any rm command"
+  
+  # Privilege Escalation
+  is-sudo-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bsudo\s+'
+    description: "Detects sudo usage"
+  
+  is-su-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bsu\s+'
+    description: "Detects su usage"
+  
+  # Remote Code Execution Patterns
+  is-pipe-to-shell:
+    type: regex
+    field: tool_input.command
+    pattern: '\|\s*(ba)?sh\b'
+    description: "Detects piping to bash/sh"
+  
+  is-curl-download:
+    type: regex
+    field: tool_input.command
+    pattern: '\bcurl\b.*(-o|--output|>)'
+    description: "Detects curl downloading to file"
+  
+  is-wget-download:
+    type: regex
+    field: tool_input.command
+    pattern: '\bwget\b'
+    description: "Detects wget usage"
+  
+  # File Write Commands
+  is-tee-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\btee\s+'
+    description: "Detects tee command"
+  
+  is-sed-inplace:
+    type: regex
+    field: tool_input.command
+    pattern: '\bsed\b.*-i'
+    description: "Detects sed with in-place flag"
+  
+  is-perl-inplace:
+    type: regex
+    field: tool_input.command
+    pattern: '\bperl\b.*-i'
+    description: "Detects perl with in-place flag"
+  
+  is-dd-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bdd\b\s+'
+    description: "Detects dd command"
+  
+  is-mv-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bmv\s+'
+    description: "Detects mv command"
+  
+  is-cp-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bcp\s+'
+    description: "Detects cp command"
+  
+  # One-Liner Write Patterns
+  is-python-file-write:
+    type: regex
+    field: tool_input.command
+    pattern: 'python.*-c.*open\s*\('
+    description: "Detects python -c with file open"
+  
+  is-node-file-write:
+    type: regex
+    field: tool_input.command
+    pattern: 'node.*-e.*fs\.'
+    description: "Detects node -e with fs operations"
+  
+  is-ruby-file-write:
+    type: regex
+    field: tool_input.command
+    pattern: 'ruby.*-e.*File\.'
+    description: "Detects ruby -e with File operations"
+  
+  # Compound: Any Bash Write Method
+  is-bash-write-command:
+    type: compound
+    any:
+      - ref: is-any-redirect
+      - ref: is-tee-command
+      - ref: is-sed-inplace
+      - ref: is-perl-inplace
+      - ref: is-dd-command
+      - ref: is-python-file-write
+      - ref: is-node-file-write
+      - ref: is-ruby-file-write
+    description: "Detects any method of writing files via bash"
+  
+  # Package Managers
+  is-npm-install:
+    type: regex
+    field: tool_input.command
+    pattern: 'npm\s+(i|install)\b'
+    description: "Detects npm install"
+  
+  is-yarn-add:
+    type: regex
+    field: tool_input.command
+    pattern: 'yarn\s+add\b'
+    description: "Detects yarn add"
+  
+  is-pip-install:
+    type: regex
+    field: tool_input.command
+    pattern: 'pip\s+install\b'
+    description: "Detects pip install"
+  
+  # Permission Changes
+  is-chmod-777:
+    type: regex
+    field: tool_input.command
+    pattern: 'chmod\s+777'
+    description: "Detects chmod 777 (dangerous permissions)"
+  
+  is-chown-command:
+    type: regex
+    field: tool_input.command
+    pattern: '\bchown\s+'
+    description: "Detects chown command"
+  
+  # ===========================================================================
+  # FILE PATH PATTERNS
+  # ===========================================================================
+  
+  # Sensitive Files
+  is-env-file:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/.env*"
+    description: "Matches .env files"
+  
+  is-ssh-key:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/.ssh/*"
+    description: "Matches SSH directory files"
+  
+  is-aws-credentials:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/.aws/*"
+    description: "Matches AWS config files"
+  
+  is-git-internal:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/.git/**"
+    description: "Matches .git internal files"
+  
+  is-private-key:
+    type: regex
+    field: tool_input.file_path
+    pattern: '\.(pem|key|p12|pfx)$'
+    flags: [ignorecase]
+    description: "Matches private key file extensions"
+  
+  is-secrets-file:
+    type: regex
+    field: tool_input.file_path
+    pattern: '(secret|credential|password|token)'
+    flags: [ignorecase]
+    description: "Matches files with secret-related names"
+  
+  # Compound: Any Sensitive File
+  is-sensitive-file:
+    type: compound
+    any:
+      - ref: is-env-file
+      - ref: is-ssh-key
+      - ref: is-aws-credentials
+      - ref: is-private-key
+      - ref: is-secrets-file
+    description: "Matches any potentially sensitive file"
+  
+  # System Directories
+  is-system-path:
+    type: regex
+    field: tool_input.file_path
+    pattern: '^/(etc|usr|var|bin|sbin)/'
+    description: "Matches system directories"
+  
+  is-home-config:
+    type: glob
+    field: tool_input.file_path
+    pattern: "~/.*"
+    description: "Matches hidden files in home directory"
+  
+  # Project Paths
+  is-node-modules:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/node_modules/**"
+    description: "Matches node_modules directory"
+  
+  is-vendor-dir:
+    type: glob
+    field: tool_input.file_path
+    pattern: "**/vendor/**"
+    description: "Matches vendor directories"
+  
+  is-build-output:
+    type: compound
+    any:
+      - type: glob
+        field: tool_input.file_path
+        pattern: "**/dist/**"
+      - type: glob
+        field: tool_input.file_path
+        pattern: "**/build/**"
+      - type: glob
+        field: tool_input.file_path
+        pattern: "**/.next/**"
+    description: "Matches build output directories"
+  
+  # ===========================================================================
+  # TOOL TYPE DETECTION
+  # ===========================================================================
+  
+  is-write-tool:
+    type: compound
+    any:
+      - type: equals
+        field: tool_name
+        value: Edit
+      - type: equals
+        field: tool_name
+        value: Write
+      - type: equals
+        field: tool_name
+        value: MultiEdit
+      - type: equals
+        field: tool_name
+        value: NotebookEdit
+    description: "Matches file-writing tools"
+  
+  is-read-tool:
+    type: compound
+    any:
+      - type: equals
+        field: tool_name
+        value: Read
+      - type: equals
+        field: tool_name
+        value: Glob
+      - type: equals
+        field: tool_name
+        value: Grep
+    description: "Matches file-reading tools"
+  
+  is-bash-tool:
+    type: equals
+    field: tool_name
+    value: Bash
+    description: "Matches Bash tool"
+  
+  # ===========================================================================
+  # UTILITY CONDITIONS
+  # ===========================================================================
+  
+  has-file-path:
+    type: exists
+    field: tool_input.file_path
+    description: "True if event has a file_path"
+  
+  has-command:
+    type: exists
+    field: tool_input.command
+    description: "True if event has a command"
+  
+  is-empty-command:
+    type: equals
+    field: tool_input.command
+    value: ""
+    description: "True if command is empty"
+  
+  # Always true/false (for testing)
+  always-true:
+    type: compound
+    any: []  # Empty any = false, but wrapped in 'not' below
+    
+  always-false:
+    type: compound
+    all:
+      - type: equals
+        field: __never_exists__
+        value: __impossible__

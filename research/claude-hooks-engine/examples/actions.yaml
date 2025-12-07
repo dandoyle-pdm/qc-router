@@ -1,0 +1,212 @@
+# =============================================================================
+# Claude Hooks Engine - Actions Library
+# =============================================================================
+# Reusable action definitions that can be referenced in rules.
+# Think of these as the "then do this" part of your rules.
+# =============================================================================
+
+version: "1.0"
+
+actions:
+  # ===========================================================================
+  # DECISION ACTIONS
+  # These return control to Claude Code with a specific decision.
+  # ===========================================================================
+  
+  block:
+    type: decision
+    decision: deny
+    message: "{{message}}"
+    description: "Block the operation with a message"
+  
+  allow:
+    type: decision
+    decision: allow
+    description: "Allow the operation without prompting"
+  
+  require-confirmation:
+    type: decision
+    decision: ask
+    message: "{{message}}"
+    description: "Ask user for confirmation"
+  
+  # Pre-configured blocking messages
+  block-security:
+    type: decision
+    decision: deny
+    message: "🔒 SECURITY: {{message}}"
+    description: "Block with security prefix"
+  
+  block-policy:
+    type: decision
+    decision: deny
+    message: "📋 POLICY: {{message}}"
+    description: "Block with policy prefix"
+  
+  # ===========================================================================
+  # LOGGING ACTIONS
+  # Record events for audit trails and debugging.
+  # ===========================================================================
+  
+  log-to-file:
+    type: log
+    params:
+      log_file: "~/.claude/logs/hooks.jsonl"
+    description: "Log event to default log file"
+  
+  log-security-events:
+    type: log
+    params:
+      log_file: "~/.claude/logs/security.jsonl"
+    description: "Log to security-specific log"
+  
+  log-blocked:
+    type: log
+    params:
+      log_file: "~/.claude/logs/blocked.jsonl"
+    description: "Log blocked operations"
+  
+  # ===========================================================================
+  # SCRIPT ACTIONS
+  # Run external scripts for complex logic.
+  # ===========================================================================
+  
+  # Notification scripts (you'll need to create these)
+  notify-desktop:
+    type: script
+    script: actions/desktop-notify.py
+    async: true
+    params:
+      title: "Claude Code Hook"
+      urgency: "normal"
+    description: "Show desktop notification"
+  
+  notify-slack:
+    type: script
+    script: actions/slack-notify.py
+    async: true
+    params:
+      channel: "#claude-alerts"
+    description: "Send Slack notification"
+  
+  # Webhook for external integrations
+  webhook:
+    type: script
+    script: actions/webhook.py
+    async: true
+    params:
+      url: "{{webhook_url}}"
+    description: "Send webhook notification"
+  
+  # ===========================================================================
+  # CHAIN ACTIONS
+  # Combine multiple actions in sequence.
+  # ===========================================================================
+  
+  block-and-log:
+    type: chain
+    actions:
+      - ref: log-blocked
+      - ref: block
+    description: "Log the event then block it"
+  
+  block-and-notify:
+    type: chain
+    actions:
+      - ref: log-security-events
+      - ref: notify-desktop
+        params:
+          urgency: "critical"
+      - ref: block
+    description: "Log, notify, then block"
+  
+  confirm-and-log:
+    type: chain
+    actions:
+      - ref: log-to-file
+      - ref: require-confirmation
+    description: "Log then ask for confirmation"
+  
+  # ===========================================================================
+  # TRANSFORM ACTIONS (PreToolUse only)
+  # Modify tool inputs before execution.
+  # ===========================================================================
+  
+  add-dry-run-flag:
+    type: transform
+    transforms:
+      - field: tool_input.command
+        operation: append
+        value: " --dry-run"
+    description: "Add --dry-run flag to command"
+  
+  add-verbose-flag:
+    type: transform
+    transforms:
+      - field: tool_input.command
+        operation: append
+        value: " --verbose"
+    description: "Add --verbose flag to command"
+  
+  # ===========================================================================
+  # CONDITIONAL ACTIONS
+  # Actions that depend on runtime conditions.
+  # ===========================================================================
+  
+  # Block if not in test file, otherwise allow
+  block-unless-test:
+    type: conditional
+    condition:
+      type: glob
+      field: tool_input.file_path
+      pattern: "**/test*/**"
+    then:
+      ref: allow
+    else:
+      ref: block
+        params:
+          message: "Modification only allowed in test directories"
+    description: "Allow in test directories only"
+  
+  # Require confirmation for large changes
+  confirm-large-changes:
+    type: conditional
+    condition:
+      # This would need a custom script to check change size
+      type: script
+      script: conditions/is-large-change.py
+    then:
+      ref: require-confirmation
+        params:
+          message: "This is a large change. Are you sure?"
+    else:
+      ref: allow
+    description: "Confirm only if change is large"
+
+# =============================================================================
+# TEMPLATE: Custom Action Scripts
+# =============================================================================
+# To create a custom action script, create a Python file in your scripts/
+# directory that:
+# 1. Reads JSON from stdin (the hook event)
+# 2. Does whatever processing you need
+# 3. Optionally exits with code 2 to block (with message on stderr)
+#
+# Example script: scripts/actions/desktop-notify.py
+# =============================================================================
+# #!/usr/bin/env python3
+# import json
+# import sys
+# import os
+# import subprocess
+#
+# event = json.load(sys.stdin)
+# title = os.environ.get("HOOK_TITLE", "Claude Code")
+# message = f"Tool: {event.get('tool_name', 'unknown')}"
+#
+# # macOS notification
+# subprocess.run([
+#     "osascript", "-e",
+#     f'display notification "{message}" with title "{title}"'
+# ])
+# =============================================================================

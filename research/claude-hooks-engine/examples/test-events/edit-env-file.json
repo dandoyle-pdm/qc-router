@@ -1,0 +1,10 @@
+{
+  "hook_type": "PreToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": ".env.production",
+    "old_string": "API_KEY=old",
+    "new_string": "API_KEY=new"
+  },
+  "session_id": "test-session-002"
+}

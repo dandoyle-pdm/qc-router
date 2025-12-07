@@ -1,0 +1,317 @@
+# =============================================================================
+# Claude Hooks Engine - Rules Configuration
+# =============================================================================
+# This file defines the rules that control Claude Code behavior.
+# Rules are evaluated in priority order (higher priority first).
+# =============================================================================
+
+version: "1.0"
+
+metadata:
+  name: "Default Security Rules"
+  description: "Common patterns for safe Claude Code operation"
+  author: "your-name"
+
+rules:
+  # ===========================================================================
+  # SECURITY: Block Dangerous Bash Commands
+  # ===========================================================================
+  
+  - id: block-bash-file-redirects
+    name: Block Bash File Redirects
+    description: |
+      Prevents file writes via shell redirection (>, >>).
+      Forces use of Edit tool for proper tracking.
+    enabled: true
+    priority: 100
+    tags: [security, bash, bypass-prevention]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      any:
+        - ref: is-output-redirect
+        - ref: is-append-redirect
+    
+    actions:
+      - ref: block-and-log
+        params:
+          message: |
+            File modification via Bash redirection is blocked.
+            Please use the Edit tool for file modifications.
+            Attempted command: {{command}}
+
+  - id: block-destructive-rm
+    name: Block Destructive rm Commands
+    description: Prevents rm -rf and similar destructive commands
+    enabled: true
+    priority: 100
+    tags: [security, bash]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-destructive-rm
+    
+    actions:
+      - ref: block
+        params:
+          message: "Destructive rm command blocked for safety"
+
+  - id: block-sudo
+    name: Block sudo Commands
+    description: Prevents privilege escalation via sudo
+    enabled: true
+    priority: 100
+    tags: [security, bash]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-sudo-command
+    
+    actions:
+      - ref: block
+        params:
+          message: "sudo commands are not permitted"
+
+  - id: block-curl-pipe-bash
+    name: Block curl|bash Patterns
+    description: Prevents potentially dangerous remote script execution
+    enabled: true
+    priority: 100
+    tags: [security, bash]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-pipe-to-shell
+    
+    actions:
+      - ref: block
+        params:
+          message: "Piping remote content to shell is blocked for security"
+
+  # ===========================================================================
+  # SECURITY: Protect Sensitive Files
+  # ===========================================================================
+
+  - id: protect-env-files
+    name: Protect Environment Files
+    description: Requires confirmation before editing .env files
+    enabled: true
+    priority: 90
+    tags: [security, files]
+    
+    trigger:
+      event: PreToolUse
+      matcher: "Edit|Write|MultiEdit"
+    
+    conditions:
+      ref: is-env-file
+    
+    actions:
+      - ref: require-confirmation
+        params:
+          message: |
+            You're about to modify an environment file: {{file_path}}
+            These files often contain secrets. Are you sure?
+
+  - id: protect-ssh-keys
+    name: Protect SSH Keys
+    description: Blocks access to SSH private keys
+    enabled: true
+    priority: 100
+    tags: [security, files]
+    
+    trigger:
+      event: PreToolUse
+      matcher: "Read|Edit|Write"
+    
+    conditions:
+      ref: is-ssh-key
+    
+    actions:
+      - ref: block
+        params:
+          message: "Access to SSH key files is blocked for security"
+
+  - id: protect-git-directory
+    name: Protect Git Directory
+    description: Prevents direct modification of .git internals
+    enabled: true
+    priority: 90
+    tags: [security, git]
+    
+    trigger:
+      event: PreToolUse
+      matcher: "Edit|Write|MultiEdit"
+    
+    conditions:
+      ref: is-git-internal
+    
+    actions:
+      - ref: block
+        params:
+          message: "Direct modification of .git directory is blocked. Use git commands instead."
+
+  # ===========================================================================
+  # BYPASS PREVENTION: Block Alternative Write Methods
+  # ===========================================================================
+
+  - id: block-tee-writes
+    name: Block tee Command
+    description: Prevents file writes via tee
+    enabled: true
+    priority: 95
+    tags: [security, bypass-prevention]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-tee-command
+    
+    actions:
+      - ref: block
+        params:
+          message: "File writes via 'tee' are blocked. Use Edit tool instead."
+
+  - id: block-sed-inplace
+    name: Block In-Place sed
+    description: Prevents in-place file edits via sed -i
+    enabled: true
+    priority: 95
+    tags: [security, bypass-prevention]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-sed-inplace
+    
+    actions:
+      - ref: block
+        params:
+          message: "In-place sed edits are blocked. Use Edit tool instead."
+
+  - id: block-python-file-writes
+    name: Block Python One-Liner Writes
+    description: Prevents file writes via python -c
+    enabled: true
+    priority: 95
+    tags: [security, bypass-prevention]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-python-file-write
+    
+    actions:
+      - ref: block
+        params:
+          message: "Python file write one-liners are blocked. Use Edit tool instead."
+
+  # ===========================================================================
+  # WORKFLOW: Confirmation for Important Operations
+  # ===========================================================================
+
+  - id: confirm-npm-install
+    name: Confirm npm Install
+    description: Requires confirmation for npm package installation
+    enabled: false  # Enable if you want this
+    priority: 50
+    tags: [workflow, npm]
+    
+    trigger:
+      event: PreToolUse
+      matcher: Bash
+    
+    conditions:
+      ref: is-npm-install
+    
+    actions:
+      - ref: require-confirmation
+        params:
+          message: "About to install npm packages. Continue?"
+
+  # ===========================================================================
+  # OBSERVABILITY: Logging
+  # ===========================================================================
+
+  - id: log-all-tool-use
+    name: Log All Tool Usage
+    description: Creates audit trail of all tool usage
+    enabled: true
+    priority: 10  # Low priority = runs last
+    tags: [observability, logging]
+    
+    trigger:
+      event: PostToolUse
+      matcher: ""  # Match all tools
+    
+    actions:
+      - type: log
+        params:
+          log_file: "~/.claude/logs/tool-use.jsonl"
+
+  - id: log-blocked-operations
+    name: Log Blocked Operations
+    description: Records all blocked operations for review
+    enabled: true
+    priority: 5
+    tags: [observability, logging, security]
+    
+    trigger:
+      event: PreToolUse
+      matcher: ""
+    
+    # This rule doesn't have conditions - it relies on being
+    # triggered by other rules via the block-and-log action
+
+# =============================================================================
+# TEMPLATE: Audit/Report-Only Mode
+# =============================================================================
+# Uncomment this rule to enable "report don't fix" mode where
+# Claude can only observe and report, not modify files.
+# =============================================================================
+
+#  - id: audit-mode
+#    name: Audit Mode - Block All Modifications
+#    description: Enables read-only operation mode
+#    enabled: true
+#    priority: 200  # High priority to override other rules
+#    tags: [audit, read-only]
+#    
+#    trigger:
+#      event: PreToolUse
+#      matcher: "Edit|Write|MultiEdit|Bash"
+#    
+#    conditions:
+#      any:
+#        - ref: is-write-tool
+#        - ref: is-bash-write-command
+#    
+#    actions:
+#      - ref: block
+#        params:
+#          message: |
+#            AUDIT MODE ACTIVE: Modifications are disabled.
+#            
+#            Please report your findings:
+#            - File: {{file_path}}
+#            - Suggested change: Describe what you would do
+#            
+#            The user will apply changes manually after review.
