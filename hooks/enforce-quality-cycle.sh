@@ -210,7 +210,7 @@ is_quality_cycle_active() {
     local session_id="${SESSION_ID:-}"
     # SECURITY FIX: Strict session ID validation
     if [[ "${session_id}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        if [[ "${session_id}" =~ ^(code-developer|code-reviewer|code-tester|tech-writer)- ]]; then
+        if [[ "${session_id}" =~ ^(code-developer|code-reviewer|code-tester|tech-writer|tech-editor|tech-publisher|prompt-engineer|prompt-reviewer|prompt-tester|plugin-engineer|plugin-reviewer|plugin-tester)- ]]; then
             debug_log "Subagent context detected via session ID: ${session_id}"
             return 0
         fi
