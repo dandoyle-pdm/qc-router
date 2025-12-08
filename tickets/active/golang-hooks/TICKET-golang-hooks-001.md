@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Convert hook shell scripts to Golang
 cycle_type: development
-status: open
+status: in_progress
 created: 2025-12-07 23:30
 worktree_path: /home/ddoyle/workspace/worktrees/qc-router/golang-hooks
 ---
