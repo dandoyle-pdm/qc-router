@@ -1,8 +1,8 @@
 ---
 # Metadata
-ticket_id: TICKET-qc-observer-004
-session_id: qc-observer
-sequence: 004
+ticket_id: TICKET-qc-observer-agent-001
+session_id: qc-observer-agent
+sequence: 001
 parent_ticket: TICKET-qc-observer-001
 title: Implement QC Observer Agent in qc-router
 cycle_type: development

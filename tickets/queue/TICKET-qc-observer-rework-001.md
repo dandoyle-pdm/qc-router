@@ -1,8 +1,8 @@
 ---
 # Metadata
-ticket_id: TICKET-qc-observer-002
-session_id: qc-observer
-sequence: 002
+ticket_id: TICKET-qc-observer-rework-001
+session_id: qc-observer-rework
+sequence: 001
 parent_ticket: TICKET-qc-observer-001
 title: Fix QC Observer Documentation - HIGH Issues
 cycle_type: development
