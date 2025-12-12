@@ -12,5 +12,6 @@
   "keywords": ["quality-cycle", "agents", "code-review", "documentation"],
   "agents": "./agents",
   "skills": "./skills",
+  "commands": "./commands",
   "hooks": "./hooks/hooks.json"
 }
