@@ -4,7 +4,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "${CLAUDE_PLUGIN_ROOT}/hooks/set-quality-cycle-context.sh",
+          "command": "${CLAUDE_PLUGIN_ROOT}/bin/set-quality-cycle-context",
           "timeout": 10
         }
       ]
@@ -16,7 +16,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-quality-cycle.sh",
+          "command": "${CLAUDE_PLUGIN_ROOT}/bin/enforce-quality-cycle",
           "timeout": 10
         }
       ]
