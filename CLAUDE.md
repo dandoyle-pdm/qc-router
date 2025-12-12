@@ -12,19 +12,20 @@ You are working on the **QC Router Plugin** - a Claude Code plugin that provides
 ```
 ~/.claude/plugins/qc-router/
 ├── .claude-plugin/plugin.json  # Plugin manifest
-├── agents/                     # 9 specialized agents (3 cycles)
-│   ├── code-developer/        # Code cycle: Creator
-│   ├── code-reviewer/         # Code cycle: Critic
-│   ├── code-tester/           # Code cycle: Judge
-│   ├── tech-writer/           # Docs cycle: Creator
-│   ├── tech-editor/           # Docs cycle: Critic
-│   ├── tech-publisher/        # Docs cycle: Judge
-│   ├── prompt-engineer/       # Prompt cycle: Creator
-│   ├── prompt-reviewer/       # Prompt cycle: Critic
-│   ├── prompt-tester/         # Prompt cycle: Judge
-│   ├── plugin-engineer/       # Plugin cycle: Creator
-│   ├── plugin-reviewer/       # Plugin cycle: Critic
-│   └── plugin-tester/         # Plugin cycle: Judge
+├── agents/                     # 14 specialized agents (4 cycles + observer)
+│   ├── code-developer/        # R1 Code: Creator
+│   ├── code-reviewer/         # R1 Code: Critic
+│   ├── code-tester/           # R1 Code: Judge
+│   ├── tech-writer/           # R2 Docs: Creator
+│   ├── tech-editor/           # R2 Docs: Critic
+│   ├── tech-publisher/        # R2 Docs: Judge
+│   ├── prompt-engineer/       # Prompt: Creator
+│   ├── prompt-reviewer/       # Prompt: Critic
+│   ├── prompt-tester/         # Prompt: Judge
+│   ├── plugin-engineer/       # R4 Plugin: Creator
+│   ├── plugin-reviewer/       # R4 Plugin: Critic
+│   ├── plugin-tester/         # R4 Plugin: Judge
+│   └── qc-observer/           # Quality cycle monitor
 ├── hooks/                     # Quality enforcement hooks
 │   ├── hooks.json            # Hook registration
 │   ├── enforce-quality-cycle.sh         # PreToolUse enforcement
@@ -46,6 +47,23 @@ You are working on the **QC Router Plugin** - a Claude Code plugin that provides
 - `skills/` - Claude Code skills with reference documentation
 - `tickets/` - Ticket system for tracked work
 
+## Available Agents
+
+**ALWAYS check this list before invoking agents. Do NOT assume or guess.**
+
+| Cycle | Creator | Critic | Judge | Use For |
+|-------|---------|--------|-------|---------|
+| **R1 Code** | code-developer | code-reviewer | code-tester | Production code |
+| **R2 Docs** | tech-writer | tech-editor | tech-publisher | Documentation of EXISTING work |
+| **Prompt** | prompt-engineer | prompt-reviewer | prompt-tester | Prompt engineering |
+| **R4 Plugin** | plugin-engineer | plugin-reviewer | plugin-tester | Plugin infrastructure |
+| **Observer** | qc-observer | - | - | Quality cycle monitoring |
+
+**Key constraints:**
+- **tech-writer**: Documents EXISTING implementations only (not design/planning)
+- **code-developer**: Implements code from tickets (not architecture design)
+- **plugin-engineer**: Creates plugin infrastructure (agents, hooks, skills)
+
 ## Quality Recipes
 
 Select recipe based on work type:
@@ -55,10 +73,10 @@ Select recipe based on work type:
 | **R1** | Production code | code-developer → code-reviewer → code-tester |
 | **R2** | Documentation (100+ lines) | tech-writer → tech-editor → tech-publisher |
 | **R3** | Handoff prompts | tech-editor (quick check) |
-| **R4** | Read-only queries | None (fast path) |
+| **R4** | Plugin/infrastructure | plugin-engineer → plugin-reviewer → plugin-tester |
 | **R5** | Config/minor changes | Single reviewer |
 
-**Plugin Changes:** Use **plugin-engineer → plugin-reviewer → plugin-tester** for all plugin modifications OR standard R1 chain.
+**Plugin Changes:** Use **R4 Plugin** chain for all plugin modifications.
 
 ### Transient Content (Second Pass)
 
