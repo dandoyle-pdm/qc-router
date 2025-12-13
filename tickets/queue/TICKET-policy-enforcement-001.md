@@ -59,6 +59,52 @@ Enforcement must be embedded in agent definitions, not just documented elsewhere
 - Creator agents: /home/ddoyle/.claude/plugins/qc-router/agents/
 - Related issue: Reverted handoff changes due to quality bypass
 
+# Investigation Findings (Phase 1 Complete)
+
+## Policy Constraints Identified (MUST-level)
+
+| Constraint | Value | Source |
+|-----------|-------|--------|
+| Root document sections | 50-100 lines max | DOCUMENTS.md:45,58,112 |
+| README.md | 150-250 (max 300) lines | DOCUMENTS.md:95,128 |
+| DEVELOPER.md | 300-500 (max 600) lines | DOCUMENTS.md:96,170 |
+| CLAUDE.md | 400-700 (max 800) lines | DOCUMENTS.md:97,220 |
+| Procedural/Conceptual howtos | ≤60 lines | DOCUMENTS.md:640 |
+| Extraction summary replacement | 20-50 lines | DOCUMENTS.md:121 |
+
+**Note:** AGENT.md files are not explicitly constrained in DOCUMENTS.md but should follow similar principles to root documents.
+
+## Creator Agent Current State
+
+| Agent | Total Lines | Max Section | Enforcement Level |
+|-------|-------------|-------------|-------------------|
+| code-developer | 340 | 120 (Loop 1 - VIOLATION) | Required but not blocking |
+| tech-writer | 290 | ~55 | Required but not blocking |
+| plugin-engineer | 332 | 57 | Suggested only |
+| prompt-engineer | 333 | 36 | Advisory checklist only |
+| plugin-expert | 327 | 55 | Required but not blocking |
+
+## Cross-Agent Enforcement Gaps
+
+1. **Validation hooks not blocking** - All mention validate-ticket.sh but no mechanism prevents proceeding on failure
+2. **Checklists are advisory** - prompt-engineer has explicit checklist but checkboxes have no gate mechanism
+3. **Quality standards are post-hoc** - Most policies verified only by reviewers, not pre-implementation
+4. **Section violations exist** - code-developer Loop 1 section is 120 lines (2.4x limit)
+5. **No prevention mechanisms** - Policies caught in review, not prevented at creation
+6. **Assertion without verification** - "Test any code snippets" instructions have no proof requirement
+
+## Required Enforcement Additions
+
+Each creator agent needs:
+1. **POLICY ENFORCEMENT section** with explicit constraints
+2. **Pre-completion checklist** with hard requirements:
+   - [ ] No section exceeds 100 lines
+   - [ ] Total document within type limits
+   - [ ] All referenced files exist
+   - [ ] JSON/YAML validated (where applicable)
+3. **Failure mode** - On violation: STOP, DECOMPOSE, create child tickets
+4. **Evidence requirement** - Must document validation results
+
 # Creator Section
 
 ## Implementation Notes
@@ -116,3 +162,12 @@ Enforcement must be embedded in agent definitions, not just documented elsewhere
 - Ticket created from kickoff prompt
 - Investigation phase to be executed via Explore agents
 - Implementation phase to use plugin quality chain
+
+## [2025-12-13 10:15] - Coordinator (Investigation Phase)
+- Parallel Explore agents completed policy constraint audit
+- Identified 6 MUST-level constraints from DOCUMENTS.md
+- Audited 5 creator agents: code-developer, tech-writer, plugin-engineer, prompt-engineer, plugin-expert
+- Found 6 cross-cutting enforcement gaps
+- code-developer Loop 1 section has 120-line violation
+- All agents have "suggested" rather than "enforced" policies
+- Ready for Phase 2: plugin-engineer implementation
