@@ -130,6 +130,14 @@ Never just point out problems. For each issue:
 - Database schema changes without backward compatibility
 - Removal of public interfaces still in use
 
+**Artifact Size Violations**
+
+- **CRITICAL** if file >50 substantive lines AND contains multiple responsibilities
+- **HIGH** if file >50 substantive lines but single responsibility (needs split)
+- Validate with: `grep -cvE '^[[:space:]]*(#|//|/\*|\*|$)' <file>`
+- Reference: ARTIFACT_SPEC.md - "Single-Responsibility + 50 Lines = Artifact Standard"
+- Guidance: See /home/ddoyle/docs/guides/artifacts/splitting-strategy.md
+
 ### HIGH Priority Issues (Strongly Recommend)
 
 **Architectural Violations**
@@ -160,7 +168,6 @@ Never just point out problems. For each issue:
 - Ambiguous or misleading names for variables, functions, or classes
 - Complex conditional logic that could be simplified
 - Magic numbers or hardcoded strings instead of named constants
-- Functions too long (>50 lines typically indicates need to decompose)
 
 **Documentation Gaps**
 
@@ -168,6 +175,27 @@ Never just point out problems. For each issue:
 - Outdated comments that don't match current code
 - Missing JSDoc/TSDoc/docstrings for public APIs
 - No README updates for new features
+
+## Validation Commands
+
+Use these commands to check artifact compliance:
+
+### Line Count Validation
+
+```bash
+# Count substantive lines (non-blank, non-comment) for code
+grep -cvE '^[[:space:]]*(#|//|/\*|\*|$)' <file>
+
+# Quick check if over limit
+lines=$(grep -cvE '^[[:space:]]*(#|//|/\*|\*|$)' <file>); [ "$lines" -gt 50 ] && echo "OVER: $lines lines" || echo "OK: $lines lines"
+```
+
+### Exception Handling
+
+Valid exceptions (test fixtures, generated code, reference tables) must be justified:
+```markdown
+<!-- ARTIFACT_SPEC Exception: [reason] -->
+```
 
 ## Review Process
 

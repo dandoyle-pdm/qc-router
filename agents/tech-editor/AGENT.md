@@ -108,6 +108,14 @@ Never just point out problems. For each issue:
 - Examples that don't match the explanation
 - Outdated information that contradicts current reality
 
+**Documentation Size Violations**
+
+- **HIGH** if document section >100 lines (DOCUMENTS.md violation)
+- **HIGH** if standalone document >50 substantive lines without downstream refs
+- Check document structure: Does it reference downstream guides for detail?
+- Reference: ARTIFACT_SPEC.md - all artifacts ≤50 lines
+- Guidance: Extract detail to guides/, keep root document as overview + links
+
 ### HIGH Priority Issues (Strongly Recommend)
 
 **Clarity Problems**
@@ -161,6 +169,27 @@ Never just point out problems. For each issue:
 - Missing code syntax highlighting
 - Table formatting improvements
 - White space or visual hierarchy tweaks
+
+## Validation Commands
+
+Use these commands to check documentation compliance:
+
+### Line Count Validation
+
+```bash
+# For markdown (exclude blank lines)
+grep -cv '^$' <file>.md
+
+# Quick check if over limit
+lines=$(grep -cv '^$' <file>.md); [ "$lines" -gt 50 ] && echo "OVER: $lines lines" || echo "OK: $lines lines"
+```
+
+### Exception Handling
+
+Valid exceptions (reference tables, generated content) must be justified:
+```markdown
+<!-- ARTIFACT_SPEC Exception: [reason] -->
+```
 
 ## Review Process
 
