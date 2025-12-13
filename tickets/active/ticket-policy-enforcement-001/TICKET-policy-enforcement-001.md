@@ -6,7 +6,7 @@ sequence: 001
 parent_ticket: null
 title: Add hard policy enforcement to creator agents
 cycle_type: development
-status: in_progress
+status: critic_review
 created: 2025-12-13 10:00
 worktree_path: /home/ddoyle/workspace/worktrees/qc-router/ticket-policy-enforcement-001
 ---
@@ -108,16 +108,44 @@ Each creator agent needs:
 # Creator Section
 
 ## Implementation Notes
-[To be filled by plugin-engineer]
+
+Added POLICY ENFORCEMENT sections to all four creator agents with consistent structure:
+
+1. **Artifact Constraints Table** - Type-specific limits (section lines, total lines, source reference)
+2. **Pre-Completion Checklist (MANDATORY)** - Hard requirements that must be verified before signaling completion
+3. **Validation Gate** - STOP/DECOMPOSE/CREATE CHILD TICKETS/DOCUMENT failure mode
+4. **Evidence Requirement** - Required format for documenting validation results
+
+Approach taken:
+- Extracted oversized sections to maintain self-compliance:
+  - code-developer: Extracted 120-line "Loop 1" section to ITERATION_PROTOCOL.md
+  - plugin-engineer: Extracted "Plugin Resource Reference" to PLUGIN_REFERENCE.md
+  - prompt-engineer: Extracted "Prompt Types and Approaches" to PROMPT_TYPES.md
+- Each enforcement section is ~40-45 lines
+- Main files link to extracted content with summaries
 
 ## Questions/Concerns
-[To be filled by plugin-engineer]
+
+1. plugin-tester/AGENT.md has a 140-line section ("Evaluation Process") - this is out of scope for this ticket (critic agent, not creator), but flagged for potential follow-up
+2. The plugin-expert agent in `/home/ddoyle/docs/agents/` was not updated as it's in a different repository
 
 ## Changes Made
 - File changes:
-- Commits:
+  - agents/code-developer/AGENT.md (340 -> 275 lines)
+  - agents/code-developer/ITERATION_PROTOCOL.md (NEW - 121 lines)
+  - agents/tech-writer/AGENT.md (290 -> 338 lines, +enforcement)
+  - agents/plugin-engineer/AGENT.md (332 -> 337 lines, extraction + enforcement)
+  - agents/plugin-engineer/PLUGIN_REFERENCE.md (NEW - 81 lines)
+  - agents/prompt-engineer/AGENT.md (333 -> 331 lines, extraction + enforcement)
+  - agents/prompt-engineer/PROMPT_TYPES.md (NEW - 62 lines)
+- Commits: 6c137c4
 
-**Status Update**: [pending]
+## Validation Results
+- Section limits: PASS - largest section: 79 lines (plugin-engineer Operating Principles)
+- Total limits: PASS - all under 350 (275, 338, 337, 331)
+- Self-consistency: PASS - updated agents comply with their own policies
+
+**Status Update**: [2025-12-13 15:45] - Changed status to critic_review
 
 # Critic Section
 
@@ -171,3 +199,13 @@ Each creator agent needs:
 - code-developer Loop 1 section has 120-line violation
 - All agents have "suggested" rather than "enforced" policies
 - Ready for Phase 2: plugin-engineer implementation
+
+## [2025-12-13 15:45] - Creator (plugin-engineer)
+- Added POLICY ENFORCEMENT sections to all four creator agents
+- Extracted oversized sections to maintain self-compliance:
+  - code-developer: ITERATION_PROTOCOL.md
+  - plugin-engineer: PLUGIN_REFERENCE.md
+  - prompt-engineer: PROMPT_TYPES.md
+- Verified all agents comply with section/total limits
+- Commit: 6c137c4
+- Status changed to critic_review
