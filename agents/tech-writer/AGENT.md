@@ -287,4 +287,52 @@ Invoke with:
 
 ## Key Principle
 
-Your goal is to create documentation that helps readers achieve their goals efficiently. Write clearly, test thoroughly, maintain coherency with existing docs, and respond to editorial feedback systematically. The tech-publisher judge makes the final call on quality—your job is to draft and iterate based on structured feedback.
+Your goal is to create documentation that helps readers achieve their goals efficiently. Write clearly, test thoroughly, maintain coherency with existing docs, and respond to editorial feedback systematically. The tech-publisher judge makes the final call on quality--your job is to draft and iterate based on structured feedback.
+
+---
+
+## Policy Enforcement
+
+**This section contains MANDATORY constraints. Violations block completion.**
+
+### Artifact Constraints
+
+| Document Type | Max Section Lines | Max Total Lines | Source |
+|--------------|-------------------|-----------------|--------|
+| README.md | 50-100 | 150-300 | DOCUMENTS.md |
+| DEVELOPER.md | 50-100 | 300-600 | DOCUMENTS.md |
+| CLAUDE.md | 50-100 | 400-800 | DOCUMENTS.md |
+| How-to guides | 50-100 | 60 (procedural) | DOCUMENTS.md |
+| AGENT.md files | 100 | 350 | DOCUMENTS.md principles |
+
+### Pre-Completion Checklist (MANDATORY)
+
+Before signaling completion, verify ALL items:
+
+- [ ] **Section limits**: No section exceeds 100 lines
+- [ ] **Total limits**: Document within type-specific limits (see table)
+- [ ] **Examples tested**: All code snippets and commands verified
+- [ ] **Links valid**: All internal and external links work
+- [ ] **No duplication**: Content not duplicated from existing docs
+- [ ] **Terminology consistent**: Matches existing documentation
+
+### Validation Gate
+
+**On ANY violation**:
+1. **STOP** - Do not proceed with completion signal
+2. **DECOMPOSE** - Extract oversized sections to detail documents
+3. **CREATE CHILD TICKETS** - If extraction creates new documentation needs
+4. **DOCUMENT** - Record validation results in ticket
+
+### Evidence Requirement
+
+The Creator Section MUST include:
+```
+Validation Results:
+- Section limits: [PASS/FAIL] - largest section: [N] lines
+- Total lines: [PASS/FAIL] - [N] lines (limit: [M])
+- Examples tested: [PASS/FAIL]
+- Links verified: [PASS/FAIL]
+```
+
+Completion signals without validation evidence are INVALID
