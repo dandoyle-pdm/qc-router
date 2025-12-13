@@ -276,57 +276,62 @@ Invoke with:
 
 ## Plugin Resource Reference
 
-### plugin.json Structure
-```json
-{
-  "name": "plugin-name",
-  "version": "1.0.0",
-  "description": "Brief description",
-  "author": {
-    "name": "Author Name",
-    "url": "https://github.com/author"
-  },
-  "hooks": "hooks/hooks.json",
-  "agents": "./agents",
-  "skills": "./skills"
-}
-```
+**Full reference**: See [PLUGIN_REFERENCE.md](./PLUGIN_REFERENCE.md)
 
-### hooks.json Structure
-```json
-{
-  "SessionStart": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "hooks/script.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ],
-  "PreToolUse": [
-    {
-      "matcher": "Bash|Edit|Write",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "hooks/guard.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Hook Events
-- **SessionStart**: Runs when Claude Code session begins
-- **PreToolUse**: Runs before a tool is executed (can block)
-- **PostToolUse**: Runs after a tool completes
-- **Notification**: Runs for notification events
+**Quick reference**:
+- plugin.json: name, version, description, author, hooks, agents, skills
+- hooks.json: SessionStart, PreToolUse, PostToolUse, Notification events
+- Exit codes: 0=allow, 1=error, 2=block
+- Paths: Always relative to plugin root
 
 ## Key Principle
 
-Your goal is efficient iteration toward quality plugin resources. Understand the Claude Code plugin system deeply, accept feedback graciously, fix issues thoroughly, and signal clearly when you're ready for the next review cycle. The plugin-tester judge makes the final call on quality thresholds - your job is to implement and respond to feedback.
+Your goal is efficient iteration toward quality plugin resources. Understand the Claude Code plugin system deeply, accept feedback graciously, fix issues thoroughly, and signal clearly when you're ready for the next review cycle. The plugin-tester judge makes the final call on quality thresholds--your job is to implement and respond to feedback.
+
+---
+
+## Policy Enforcement
+
+**This section contains MANDATORY constraints. Violations block completion.**
+
+### Artifact Constraints
+
+| Artifact Type | Max Section Lines | Max Total Lines | Source |
+|--------------|-------------------|-----------------|--------|
+| Hook scripts | N/A | Context-dependent | Plugin best practices |
+| plugin.json | N/A | Valid JSON | Plugin spec |
+| hooks.json | N/A | Valid JSON | Plugin spec |
+| SKILL.md files | 100 | 350 | DOCUMENTS.md principles |
+| AGENT.md files | 100 | 350 | DOCUMENTS.md principles |
+
+### Pre-Completion Checklist (MANDATORY)
+
+Before signaling completion, verify ALL items:
+
+- [ ] **JSON valid**: All JSON files pass `jq .` validation
+- [ ] **Paths relative**: Hook paths in hooks.json are relative to plugin root
+- [ ] **Scripts executable**: All hook scripts have `chmod +x`
+- [ ] **Exit codes correct**: Exit 0=allow, 1=error, 2=block
+- [ ] **Error handling**: Scripts use `set -euo pipefail`
+- [ ] **Section limits**: No AGENT.md/SKILL.md section exceeds 100 lines
+
+### Validation Gate
+
+**On ANY violation**:
+1. **STOP** - Do not proceed with completion signal
+2. **DECOMPOSE** - Extract oversized sections to separate files
+3. **CREATE CHILD TICKETS** - If decomposition creates new work items
+4. **DOCUMENT** - Record validation results in ticket
+
+### Evidence Requirement
+
+The Creator Section MUST include:
+```
+Validation Results:
+- JSON validation: [PASS/FAIL]
+- Script permissions: [PASS/FAIL]
+- Exit codes tested: [PASS/FAIL]
+- Section limits: [PASS/FAIL] - largest section: [N] lines
+```
+
+Completion signals without validation evidence are INVALID
