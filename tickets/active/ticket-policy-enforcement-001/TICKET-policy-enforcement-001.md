@@ -6,9 +6,9 @@ sequence: 001
 parent_ticket: null
 title: Add hard policy enforcement to creator agents
 cycle_type: development
-status: open
+status: in_progress
 created: 2025-12-13 10:00
-worktree_path: null
+worktree_path: /home/ddoyle/workspace/worktrees/qc-router/ticket-policy-enforcement-001
 ---
 
 # Requirements
