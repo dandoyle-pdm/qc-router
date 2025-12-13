@@ -3,11 +3,11 @@ ticket_id: TICKET-artifact-enforcement-001
 session_id: artifact-enforcement
 title: Enhance quality agents with 50-line artifact validation
 cycle_type: development
-status: pr_open
+status: merged
 created: 2025-12-08
 activated: 2025-12-12
+merged: 2025-12-12
 branch: ticket/artifact-enforcement
-worktree: /home/ddoyle/.novacloud/worktrees/qc-router/artifact-enforcement
 pr: https://github.com/dandoyle-pdm/qc-router/pull/5
 ---
 
