@@ -160,6 +160,16 @@ Never just point out problems. For each issue:
 - Scripts that can crash the Claude Code session
 - Agents missing required sections (invocation template, role description)
 
+**Artifact Size Violations (ARTIFACT_SPEC.md)**
+
+- **HIGH** if hook script >50 substantive lines
+- **HIGH** if AGENT.md >50 substantive lines (excluding examples section)
+- **HIGH** if configuration files mix multiple concerns
+- **HIGH** if SKILL.md overview >50 lines without detail in references/
+- Validation: `grep -cvE '^[[:space:]]*(#|//|$)' <file>`
+- If exceeds: Document justification OR split into focused artifacts
+- Reference: /home/ddoyle/docs/guides/artifacts/splitting-strategy.md
+
 ### HIGH Priority Issues (Strongly Recommend)
 
 **Error Handling Problems**
@@ -206,6 +216,30 @@ Never just point out problems. For each issue:
 - Mixed naming conventions
 - Inconsistent frontmatter fields
 - Style variations in similar resources
+
+## Validation Commands
+
+Use these commands to check plugin artifact compliance:
+
+### Line Count Validation
+
+```bash
+# Count substantive lines (non-blank, non-comment)
+grep -cvE '^[[:space:]]*(#|//|$)' <file>
+
+# For markdown (exclude blank lines)
+grep -cv '^$' <file>.md
+
+# Quick check if over limit
+lines=$(grep -cvE '^[[:space:]]*(#|//|$)' <file>); [ "$lines" -gt 50 ] && echo "OVER: $lines lines" || echo "OK: $lines lines"
+```
+
+### Exception Handling
+
+Valid exceptions (test fixtures, snapshots, reference tables) must be justified:
+```markdown
+<!-- ARTIFACT_SPEC Exception: [reason] -->
+```
 
 ## Review Process
 
